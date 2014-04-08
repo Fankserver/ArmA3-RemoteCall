@@ -2,6 +2,7 @@
 //
 
 #include "stdafx.h"
+#include <shellapi.h>
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "3310"
@@ -13,6 +14,69 @@ extern "C" {
 	__declspec (dllexport) void __stdcall RVExtension(char *output, int outputSize, const char *function);
 }
 
+std::string getProfileFolder() {
+	std::string profileFolder = "";
+	LPTSTR cmdLine = GetCommandLine();
+	int numCmdLineArgs = 0;
+	LPTSTR *cmdLineArgs = CommandLineToArgvW(cmdLine, &numCmdLineArgs);
+
+	std::vector<std::string> commandLine;
+	commandLine.reserve(numCmdLineArgs);
+
+	for (int i = 0; i < numCmdLineArgs; i++) {
+		std::wstring args(cmdLineArgs[i]);
+		std::string utf8(args.begin(), args.end());
+		commandLine.push_back(utf8);
+	}
+
+	for (std::vector<std::string>::iterator it = commandLine.begin(); it != commandLine.end(); it++) {
+		std::string starter = "-profiles=";
+		if (it->length() < starter.length()) {
+			continue;
+		}
+
+		std::string compareMe = it->substr(0, starter.length());
+		if (compareMe.compare(starter) != 0) {
+			continue;
+		}
+
+		profileFolder = it->substr(compareMe.length());
+	}
+
+	return profileFolder;
+}
+int getServerPort() {
+	std::string profileFolder = "";
+	LPTSTR cmdLine = GetCommandLine();
+	int numCmdLineArgs = 0;
+	LPTSTR *cmdLineArgs = CommandLineToArgvW(cmdLine, &numCmdLineArgs);
+
+	std::vector<std::string> commandLine;
+	commandLine.reserve(numCmdLineArgs);
+
+	for (int i = 0; i < numCmdLineArgs; i++) {
+		std::wstring args(cmdLineArgs[i]);
+		std::string utf8(args.begin(), args.end());
+		commandLine.push_back(utf8);
+	}
+
+	for (std::vector<std::string>::iterator it = commandLine.begin(); it != commandLine.end(); it++) {
+		std::string starter = "-port=";
+		if (it->length() < starter.length()) {
+			continue;
+		}
+
+		std::string compareMe = it->substr(0, starter.length());
+		if (compareMe.compare(starter) != 0) {
+			continue;
+		}
+
+		profileFolder = it->substr(compareMe.length());
+	}
+
+	return atoi(profileFolder.c_str());
+}
+
 void socketListener() {
 	std::ofstream logFile;
 	logFile.open("remote_call.socket.log");
@@ -20,7 +84,7 @@ void socketListener() {
 	int iResult;
 
 	SOCKET ListenSocket = INVALID_SOCKET;
-	SOCKET ClientSocket = INVALID_SOCKET;
+	SOCKET ClientSocket;
 
 	struct addrinfo *result = NULL;
 	struct addrinfo hints;
@@ -45,8 +109,10 @@ void socketListener() {
 	hints.ai_flags = AI_PASSIVE;
 
 	// Resolve the server address and port
-	logFile << "Resolve the server address and port\n";
-	iResult = getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
+	char stringPort[6];
+	sprintf_s(stringPort, "%d", getServerPort() + 1000);
+	logFile << "Resolve the server address and port " << stringPort << "\n";
+	iResult = getaddrinfo(NULL, (PCSTR)stringPort, &hints, &result);
 	if (iResult != 0) {
 		logFile << "getaddrinfo failed with error: " << iResult << "\n";
 		logFile.close();
@@ -97,6 +163,7 @@ void socketListener() {
 		WSACleanup();
 		exit(1);
 	}
+	logFile.close();
 
 	// Receive until the peer shuts down the connection
 	do {
@@ -165,5 +232,10 @@ void __stdcall RVExtension(char *output, int outputSize, const char *function) {
 
 			strncpy_s(output, outputSize, sqf.c_str(), _TRUNCATE);
 		}
+	}
+	else if (strcmp(function, "WorkerStackCount") == 0) {
+		std::string sqf;
+		sqf.append((char *)shString.size());
+		strncpy_s(output, outputSize, sqf.c_str(), _TRUNCATE);
 	}
 }
