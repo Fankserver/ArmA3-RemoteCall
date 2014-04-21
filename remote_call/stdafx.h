@@ -28,3 +28,7 @@
 
 // Need to link with Ws2_32.lib
 #pragma comment (lib, "Ws2_32.lib")
+
+#ifdef _MSC_VER
+#define snprintf _snprintf
+#endif
