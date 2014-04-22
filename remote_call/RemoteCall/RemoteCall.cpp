@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "RemoteCall.h"
 
 RemoteCall::RemoteCall() {

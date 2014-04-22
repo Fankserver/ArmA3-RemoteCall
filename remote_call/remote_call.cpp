@@ -1,8 +1,18 @@
-// remote_call.cpp : Definiert die exportierten Funktionen für die DLL-Anwendung.
-//
+#include <vector>
+#include <thread>
+#include <memory>
+#include <iostream>
+#include <fstream>
 
-#include "stdafx.h"
+// Selten verwendete Teile der Windows-Header nicht einbinden.
+#define WIN32_LEAN_AND_MEAN
+
+// Windows-Headerfiles:
+#include <windows.h>
 #include <shellapi.h>
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#pragma comment (lib, "Ws2_32.lib")
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "3310"
