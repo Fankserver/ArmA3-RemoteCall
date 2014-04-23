@@ -41,7 +41,7 @@ private:
 	std::thread socketThread;
 
 	void _buildHeader();
-	void _initServerSocket(RemoteCall *Object);
+	void _initServerSocket();
 	void _initClientSocket(RemoteCall *Object, LPVOID lpParameter);
 
 public:
