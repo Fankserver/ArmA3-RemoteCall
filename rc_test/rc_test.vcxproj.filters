@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="RemoteCall">
+      <UniqueIdentifier>{3046fd70-266e-4513-a4ba-a86809ebd3c7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -21,5 +24,13 @@
     <ClCompile Include="rc_test.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="RemoteCall\RemoteCall.cpp">
+      <Filter>RemoteCall</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="RemoteCall\RemoteCall.hpp">
+      <Filter>RemoteCall</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

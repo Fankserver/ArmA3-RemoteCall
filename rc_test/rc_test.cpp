@@ -13,6 +13,8 @@
 #pragma comment (lib, "Ws2_32.lib")
 // #pragma comment (lib, "Mswsock.lib")
 
+#include "RemoteCall\RemoteCall.hpp"
+
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "3333"
 
@@ -86,7 +88,11 @@ fin:
 	return 0;
 }
 
+RemoteCall rc;
+
 void main(void) {
+	rc.initServer();
+
 	WSADATA wsaData;
 	int iResult;
 
