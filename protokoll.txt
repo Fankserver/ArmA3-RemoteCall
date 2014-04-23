@@ -38,3 +38,7 @@ HEADER + | 0x11 | 2 byte query id
 6. Query Result Response (Server -> Client)
 
 HEADER + | 0x12 | 2 byte query id | content
+
+7. Keep Alive (Server <- Client) every 60 seconds or less
+
+HEADER + | 0x20
