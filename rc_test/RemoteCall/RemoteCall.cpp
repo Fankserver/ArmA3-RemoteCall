@@ -18,22 +18,14 @@ void RemoteCall::_buildHeader() {
 	this->header[headerSize - 1] = 0xFF;
 }
 
-void RemoteCall::_initServerSocket() {
-
-}
-
-// public
-void RemoteCall::initServer() {
+void RemoteCall::_initServerSocket(RemoteCall *_object) {
+	// Winsockets
 #ifdef WIN32
 	int iResult;
 	SOCKET serverSocket = INVALID_SOCKET;
 
 	struct addrinfo *result = NULL;
 	struct addrinfo hints;
-
-	int iSendResult;
-	char recvbuf[REMOTECALL_SOCKBUFFER];
-	int recvbuflen = REMOTECALL_SOCKBUFFER;
 
 	// Initialize Winsock
 	WSADATA winsockData;
@@ -51,7 +43,7 @@ void RemoteCall::initServer() {
 
 	// Resolve the server address and port
 	char serverPort[5];
-	itoa(this->server.port, serverPort, 10);
+	itoa(_object->server.port, serverPort, 10);
 	iResult = getaddrinfo(NULL, serverPort, &hints, &result);
 	if (iResult != 0) {
 		printf("getaddrinfo failed with error: %d\n", iResult);
@@ -89,10 +81,19 @@ void RemoteCall::initServer() {
 
 		printf("Client Connected.\n");
 
-		DWORD dwThreadId;
-		CreateThread(NULL, 0, this->_newClient, (LPVOID)clientsocket, 0, &dwThreadId);
+		std::thread(&RemoteCall::_initClientSocket, _object, (LPVOID)clientsocket);
 	}
 #endif
+}
+
+void RemoteCall::_initClientSocket(RemoteCall *_object, LPVOID _socket) {
+	clientS client;
+	printf("client init");
+}
+
+// public
+void RemoteCall::initServer() {
+	this->socketThread = std::thread(&RemoteCall::_initServerSocket, this, this);
 }
 
 //const char *RemoteCall::socketHandshake() {

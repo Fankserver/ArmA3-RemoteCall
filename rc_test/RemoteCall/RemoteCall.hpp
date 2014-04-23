@@ -38,11 +38,11 @@ private:
 	serverS server;
 	char *header;
 
+	std::thread socketThread;
+
 	void _buildHeader();
-	void _initServerSocket();
-#ifdef WIN32
-	DWORD WINAPI _newClient(LPVOID lpParameter);
-#endif
+	void _initServerSocket(RemoteCall *Object);
+	void _initClientSocket(RemoteCall *Object, LPVOID lpParameter);
 
 public:
 	RemoteCall();
