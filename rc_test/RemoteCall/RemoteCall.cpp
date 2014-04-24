@@ -18,9 +18,9 @@ void RemoteCall::_buildHeader() {
 	this->header[headerSize - 1] = 0xFF;
 }
 
-void RemoteCall::_initServerSocket() {
-	// Winsockets
+// Winsockets
 #ifdef WIN32
+void RemoteCall::_initServerSocket() {
 	int iResult;
 	SOCKET serverSocket = INVALID_SOCKET;
 
@@ -72,26 +72,55 @@ void RemoteCall::_initServerSocket() {
 
 	freeaddrinfo(result);
 
-	printf("Server startup: %d", this->server.port);
+	listen(serverSocket, 10);
+	std::cout << "Server startup: " << this->server.port << std::endl;
 
 	while (1) {
-		SOCKET clientsocket = SOCKET_ERROR;
+		SOCKET clientSocket = SOCKET_ERROR;
 
-		while (clientsocket == SOCKET_ERROR) {
-			clientsocket = accept(serverSocket, NULL, NULL);
+		while (clientSocket == SOCKET_ERROR) {
+			clientSocket = accept(serverSocket, NULL, NULL);
 		}
 
-		printf("Client Connected.\n");
-
-		//std::thread(&RemoteCall::_initClientSocket, _object, (LPVOID)clientsocket);
+		std::cout << "Client connected" << std::endl;
+		std::thread(std::bind(&RemoteCall::_initClientSocket, this, clientSocket)).detach();
 	}
-#endif
 }
 
-void RemoteCall::_initClientSocket(RemoteCall *_object, LPVOID _socket) {
+void RemoteCall::_initClientSocket(SOCKET _socket) {
 	clientS client;
 	printf("client init");
+
+	int iResult;
+	int recvBufLen = REMOTECALL_SOCKBUFFER;
+	char recvbuf[REMOTECALL_SOCKBUFFER];
+
+	// Receive until the peer shuts down the connection
+	do {
+		iResult = recv(_socket, recvbuf, recvBufLen, 0);
+		if (iResult > 0) {
+			std::cout << "Bytes received: " << iResult << "\n";
+			int iSendResult = send(_socket, "1", 1, 0);
+			if (iSendResult == SOCKET_ERROR) {
+				std::cout << "send failed with error: " << WSAGetLastError() << "\n";
+				closesocket(_socket);
+				WSACleanup();
+				return;
+			}
+			
+			std::cout << "Bytes sent: " << iSendResult << "\n";
+		}
+		else if (iResult == 0) {
+			std::cout << "Connection closing...\n";
+		}
+		else  {
+			std::cout << "recv failed with error: " << WSAGetLastError() << "\n";
+			closesocket(_socket);
+			WSACleanup();
+		}
+	} while (iResult > 0);
 }
+#endif
 
 // public
 void RemoteCall::initServer() {

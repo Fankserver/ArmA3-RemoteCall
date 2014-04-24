@@ -1,5 +1,6 @@
 #include <sstream>
 #include <thread>
+#include <iostream>
 
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -42,7 +43,7 @@ private:
 
 	void _buildHeader();
 	void _initServerSocket();
-	void _initClientSocket(RemoteCall *Object, LPVOID lpParameter);
+	void _initClientSocket(SOCKET Socket);
 
 public:
 	RemoteCall();
