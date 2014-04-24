@@ -10,12 +10,13 @@ RemoteCall::~RemoteCall() {
 }
 
 // private
-void RemoteCall::_buildHeader() {
-	size_t headerSize = sizeof(char) * 4;
-	this->header = new char[headerSize];
-	snprintf(this->header, headerSize, "RC");
-	this->header[headerSize - 2] = REMOTECALL_VERSION;
-	this->header[headerSize - 1] = 0xFF;
+void RemoteCall::_createPacket(packetS *_packet) {
+	strncpy(_packet->identfier, "RC", 2);
+	_packet->version = REMOTECALL_VERSION;
+	_packet->spacer = 0xFF;
+	_packet->command = 0x00;
+	_packet->content = new char[1];
+	_packet->content = '\0';
 }
 
 bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_packet) {
@@ -72,6 +73,54 @@ bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_pac
 	}
 
 	return true;
+}
+
+bool RemoteCall::_validatePacket(packetS *_packet) {
+	// Valid RemoteCall packet
+	if (
+		_packet->identfier[0] == 'R' && _packet->identfier[1] == 'C'
+		&& (int)_packet->version > 0
+		&& (int)_packet->spacer == 0xFF
+		&& (int)_packet->command >= 0
+	) {
+		// Wrong version
+		if (_packet->version != REMOTECALL_VERSION) {
+			return false;
+		}
+
+		// Check command
+		if (
+			_packet->command == RemoteCallCommands::HandshakePassword
+			|| _packet->command == RemoteCallCommands::HandshakeResponse
+			|| _packet->command == RemoteCallCommands::Query
+			|| _packet->command == RemoteCallCommands::QueryResponseId
+			|| _packet->command == RemoteCallCommands::QueryResponseResult
+		) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_packetDest) {
+	// Client logged in
+	if (_client->loggedIn) {
+		if (_packet->command == RemoteCallCommands::Query) {
+			std::cout << "Process Query: " << _packet->content << std::endl;
+		}
+	}
+	else {
+		if (_packet->command == RemoteCallCommands::HandshakePassword) {
+			if (strcmp(_packet->content, this->server.password) == 0) {
+				_client->loggedIn = true;
+				std::cout << "Client logged in" << std::endl;
+			}
+		}
+		else {
+			std::cout << "Wrong command client not logged in" << std::endl;
+		}
+	}
 }
 
 // Winsockets
@@ -149,9 +198,11 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 	int recvBufLen = REMOTECALL_SOCKBUFFER;
 	char recvbuf[REMOTECALL_SOCKBUFFER];
 
+	client.password = "";
+	client.loggedIn = false;
+
 	// Receive until the peer shuts down the connection
 	do {
-
 		iResult = recv(_socket, recvbuf, recvBufLen, 0);
 		if (iResult > 0) {
 			packetS packet;
@@ -159,6 +210,14 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 			std::cout << "Bytes received: " << iResult << std::endl;
 
 			this->_unpackPacket(recvbuf, iResult, &packet);
+			if (this->_validatePacket(&packet)) {
+				std::cout << "PACKET VALID" << std::endl;
+
+				packetS responsePacket;
+				this->_createPacket(&responsePacket);
+				this->_processPacket(&client, &packet, &responsePacket);
+			}
+
 			int iSendResult = send(_socket, "1", 1, 0);
 			if (iSendResult == SOCKET_ERROR) {
 				std::cout << "send failed with error: " << WSAGetLastError() << "\n";

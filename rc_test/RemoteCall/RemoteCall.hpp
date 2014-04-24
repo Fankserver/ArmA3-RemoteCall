@@ -23,6 +23,14 @@
 #define REMOTECALL_VERSION 1
 #define REMOTECALL_SOCKBUFFER 512
 
+enum RemoteCallCommands {
+	HandshakePassword = 0x00
+	,HandshakeResponse
+	,Query = 0x10
+	,QueryResponseId
+	,QueryResponseResult
+};
+
 class RemoteCall {
 private:
 	struct serverS {
@@ -30,8 +38,8 @@ private:
 		char *password;
 	};
 	struct clientS {
-		unsigned char version;
 		char *password;
+		bool loggedIn;
 	};
 	struct packetS {
 		char identfier[2];
@@ -47,10 +55,14 @@ private:
 
 	std::thread socketThread;
 
-	void _buildHeader();
 	void _initServerSocket();
 	void _initClientSocket(SOCKET Socket);
+
+	// Packet management
+	void _createPacket(packetS *Packet);
 	bool _unpackPacket(char *Receive, int ReceiveLength, packetS *Packet);
+	bool _validatePacket(packetS *Packet);
+	void _processPacket(clientS *Client, packetS *Packet, packetS *PacketDest);
 
 public:
 	RemoteCall();
