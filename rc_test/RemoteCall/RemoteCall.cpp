@@ -19,28 +19,52 @@ void RemoteCall::_buildHeader() {
 }
 
 bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_packet) {
+	// create limited packet
 	char *packet = new char[_receiveLength];
 	strncpy(packet, _receive, _receiveLength);
 
 	if (_receiveLength >= 5) {
+		// Is new packet
 		if (strcmp(_packet->identfier, "") == 0) {
+			// wrap the packet
 			memcpy(_packet, _receive, _receiveLength);
-			strncpy(_packet->identfier, _packet->identfier, 2);
+
+			// contains content
 			if (_receiveLength >= 6) {
+
+				// Allocate new content
 				int contentLength = _receiveLength - 5;
 				_packet->content = new char[contentLength];
+
+				// copy content
 				strncpy(_packet->content, _receive + 5, contentLength);
 				_packet->content[contentLength] = '\0';
 			}
+
+			// command only
 			else {
 				_packet->content = new char[1];
 				strcpy(_packet->content, "");
 			}
+
 			std::cout << "Identifier: " << _packet->identfier[0] << _packet->identfier[1] << std::endl;
 			std::cout << "Version: " << (int)_packet->version << std::endl;
 			std::cout << "Spacer: " << (int)_packet->spacer << std::endl;
 			std::cout << "Command: " << (int)_packet->command << std::endl;
 			std::cout << "Content: " << _packet->content << std::endl;
+		}
+		else {
+			// Allocate new content
+			int contentLength = strlen(_packet->content) + _receiveLength;
+			char *newContent = (char *)malloc(contentLength);
+
+			// copy and concat
+			strcpy(newContent, _packet->content);
+			strncat(newContent, _receive, _receiveLength);
+			
+			// release old & store new content
+			free(_packet->content);
+			_packet->content = newContent;
 		}
 	}
 	else {
