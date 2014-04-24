@@ -126,6 +126,7 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 void RemoteCall::initServer() {
 	this->server.port = 3310;
 	this->socketThread = std::thread(std::bind(&RemoteCall::_initServerSocket, this));
+	this->socketThread.detach();
 }
 
 //const char *RemoteCall::socketHandshake() {
