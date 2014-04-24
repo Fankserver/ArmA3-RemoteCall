@@ -33,6 +33,13 @@ private:
 		unsigned char version;
 		char *password;
 	};
+	struct packetS {
+		char identfier[2];
+		unsigned char version;
+		char spacer;
+		char command;
+		char *content;
+	};
 
 private:
 	serverS server;
@@ -43,6 +50,7 @@ private:
 	void _buildHeader();
 	void _initServerSocket();
 	void _initClientSocket(SOCKET Socket);
+	bool _unpackPacket(char *Receive, int ReceiveLength, packetS *Packet);
 
 public:
 	RemoteCall();
