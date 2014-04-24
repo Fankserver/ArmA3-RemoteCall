@@ -72,7 +72,7 @@ void RemoteCall::_initServerSocket() {
 
 	freeaddrinfo(result);
 
-	printf("Server startup: %s", this->server.port);
+	printf("Server startup: %d", this->server.port);
 
 	while (1) {
 		SOCKET clientsocket = SOCKET_ERROR;
@@ -96,7 +96,7 @@ void RemoteCall::_initClientSocket(RemoteCall *_object, LPVOID _socket) {
 // public
 void RemoteCall::initServer() {
 	this->server.port = 3310;
-	this->socketThread = std::thread(&RemoteCall::_initServerSocket, this);
+	this->socketThread = std::thread(std::bind(&RemoteCall::_initServerSocket, this));
 }
 
 //const char *RemoteCall::socketHandshake() {
