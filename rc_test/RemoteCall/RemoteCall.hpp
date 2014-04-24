@@ -1,15 +1,14 @@
 #include <sstream>
 #include <thread>
 #include <iostream>
+#include <stdlib.h>
+#include <stdio.h>
 
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
 #pragma comment (lib, "Ws2_32.lib") // Need to link with Ws2_32.lib
 #endif
 
