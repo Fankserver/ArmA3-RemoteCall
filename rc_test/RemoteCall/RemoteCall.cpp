@@ -3,6 +3,8 @@
 RemoteCall::RemoteCall() {
 	this->server.password = new char[10];
 	this->server.password = "0123456789";
+
+	this->server.port = 3310;
 }
 
 RemoteCall::~RemoteCall() {
@@ -18,7 +20,6 @@ void RemoteCall::_createPacket(packetS *_packet) {
 	_packet->content = new char[1];
 	_packet->content = '\0';
 }
-
 bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_packet) {
 	// create limited packet
 	char *packet = new char[_receiveLength];
@@ -74,7 +75,6 @@ bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_pac
 
 	return true;
 }
-
 bool RemoteCall::_validatePacket(packetS *_packet) {
 	// Valid RemoteCall packet
 	if (
@@ -102,12 +102,20 @@ bool RemoteCall::_validatePacket(packetS *_packet) {
 
 	return false;
 }
-
 void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_packetDest) {
 	// Client logged in
 	if (_client->loggedIn) {
 		if (_packet->command == RemoteCallCommands::Query) {
-			std::cout << "Process Query: " << _packet->content << std::endl;
+			int queryId = this->_addQuery(_packet->content);
+			if (queryId > 0) {
+				_packetDest->command = RemoteCallCommands::QueryResponseId;
+				_packetDest->content = new char[5];
+				itoa(queryId, _packetDest->content, 5);
+				std::cout << "Add Query (" << queryId << "): " << _packet->content << std::endl;
+			}
+			else {
+				std::cout << "Query full!" << std::endl;
+			}
 		}
 	}
 	else {
@@ -191,7 +199,6 @@ void RemoteCall::_initServerSocket() {
 		std::thread(std::bind(&RemoteCall::_initClientSocket, this, clientSocket)).detach();
 	}
 }
-
 void RemoteCall::_initClientSocket(SOCKET _socket) {
 	clientS client;
 	int iResult;
@@ -240,26 +247,25 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 }
 #endif
 
+int RemoteCall::_addQuery(char *_query) {
+	int queryId = 0;
+	for (int i = 1; i <= 10000; i++) {
+		try {
+			this->queryStack.at(i);
+		}
+		catch (...) {
+			queryId = i;
+			this->queryStack.insert(std::pair<int, char*>(queryId, _query));
+			break;
+		}
+	}
+
+	return queryId;
+}
+
 // public
 void RemoteCall::initServer() {
-	this->server.port = 3310;
 	this->socketThread = std::thread(std::bind(&RemoteCall::_initServerSocket, this));
 	this->socketThread.detach();
 }
 
-//const char *RemoteCall::socketHandshake() {
-//	std::stringstream packet;
-//	packet << this->header << 0x01;
-//
-//	if (this->clientVersion != REMOTECALL_VERSION) {
-//		packet << 0x02;
-//	}
-//	else if (strcmp(this->serverPassword, (const char*)this->clientVersion) != 0) {
-//		packet << 0x01;
-//	}
-//	else {
-//		packet << 0x00;
-//	}
-//
-//	return packet.str().c_str();
-//}

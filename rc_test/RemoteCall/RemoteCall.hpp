@@ -1,6 +1,8 @@
 #include <sstream>
 #include <thread>
 #include <iostream>
+#include <map>
+#include <memory>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -54,9 +56,7 @@ private:
 	char *header;
 
 	std::thread socketThread;
-
-	void _initServerSocket();
-	void _initClientSocket(SOCKET Socket);
+	std::map<int, char*> queryStack;
 
 	// Packet management
 	void _createPacket(packetS *Packet);
@@ -64,15 +64,17 @@ private:
 	bool _validatePacket(packetS *Packet);
 	void _processPacket(clientS *Client, packetS *Packet, packetS *PacketDest);
 
+	void _initServerSocket();
+	void _initClientSocket(SOCKET Socket);
+
+	int _addQuery(char *Query);
+
 public:
 	RemoteCall();
 	~RemoteCall();
 
 	void initServer();
-
-	const char *socketHandshake();
-	const char *socketQueryId();
-	const char *socketQueryContent();
+	std::string getStackItem();
 };
 
 #endif
