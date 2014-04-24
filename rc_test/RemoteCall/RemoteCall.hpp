@@ -36,8 +36,8 @@ private:
 	struct packetS {
 		char identfier[2];
 		unsigned char version;
-		char spacer;
-		char command;
+		unsigned char spacer;
+		unsigned char command;
 		char *content;
 	};
 
