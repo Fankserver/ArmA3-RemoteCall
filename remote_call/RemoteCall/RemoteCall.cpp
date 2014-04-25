@@ -314,14 +314,13 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 				}
 			}
 		}
-		else if (iResult == 0) {
-			std::cout << "Connection closing...\n";
-		}
 		else  {
 			closesocket(_socket);
 			WSACleanup();
 		}
 	} while (iResult > 0);
+
+	std::cout << "Connection closing...\n";
 }
 #endif
 
