@@ -3,6 +3,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <algorithm>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -14,6 +15,8 @@
 #pragma comment (lib, "Ws2_32.lib") // Need to link with Ws2_32.lib
 #endif
 
+#include "../SQF/SQF.hpp"
+
 #ifndef REMOTECALL_H
 #define REMOTECALL_H
 
@@ -24,11 +27,13 @@
 
 #define REMOTECALL_VERSION 1
 #define REMOTECALL_SOCKBUFFER 512
+#define REMOTECALL_OUTPUTBUFFER 4096
 
 enum RemoteCallCommands {
 	HandshakePassword = 0x00
 	,HandshakeResponse
-	,Query = 0x10
+	,QueryContentLength = 0x10
+	,QueryContent
 	,QueryResponseId
 	,QueryResponseResult
 };
@@ -50,6 +55,9 @@ private:
 	struct clientS {
 		char *password;
 		bool loggedIn;
+		bool isQueryBuffer;
+		unsigned short int queryBufferLength;
+		char *queryBuffer;
 	};
 	struct packetS {
 		char identfier[2];
@@ -64,6 +72,9 @@ private:
 	std::thread socketThread;
 	std::map<int, std::string> queryStack;
 
+	int tempQueryId;
+	std::string tempQuery;
+
 	// Packet management
 	void _createPacket(packetS *Packet);
 	bool _unpackPacket(char *Receive, int ReceiveLength, packetS *Packet);
@@ -74,6 +85,7 @@ private:
 	void _initClientSocket(SOCKET Socket);
 
 	int _addQuery(char *Query);
+	std::string _buildQuerySQF(int _bufferSize);
 
 public:
 	RemoteCall();

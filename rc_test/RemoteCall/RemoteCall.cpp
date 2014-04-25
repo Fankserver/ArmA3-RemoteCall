@@ -5,6 +5,9 @@ RemoteCall::RemoteCall() {
 	this->server.password = "0123456789";
 
 	this->server.port = 3310;
+
+	this->tempQueryId = 0;
+	this->tempQuery = "";
 }
 
 RemoteCall::~RemoteCall() {
@@ -91,7 +94,8 @@ int RemoteCall::_validatePacket(packetS *_packet) {
 		// Check client command
 		if (
 			_packet->command == RemoteCallCommands::HandshakePassword
-			|| _packet->command == RemoteCallCommands::Query
+			|| _packet->command == RemoteCallCommands::QueryContentLength
+			|| _packet->command == RemoteCallCommands::QueryContent
 		) {
 			return RemoteCallError::OK;
 		}
@@ -108,7 +112,20 @@ int RemoteCall::_validatePacket(packetS *_packet) {
 void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_packetDest) {
 	// Client logged in
 	if (_client->loggedIn) {
-		if (_packet->command == RemoteCallCommands::Query) {
+		if (_packet->command == RemoteCallCommands::QueryContentLength) {
+			unsigned short int queryLength = (unsigned short int)_packet->content;
+			if (queryLength > 0) {
+				// create temp buffer
+				_client->isQueryBuffer = true;
+				_client->queryBufferLength = queryLength;
+				_client->queryBuffer = new char[queryLength];
+				_client->queryBuffer[0] = '\0';
+			}
+			else {
+				// wrong query length
+			}
+		}
+		else if (_packet->command == RemoteCallCommands::QueryContent) {
 			int queryId = this->_addQuery(_packet->content);
 			if (queryId > 0) {
 				_packetDest->command = RemoteCallCommands::QueryResponseId;
@@ -210,6 +227,7 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 
 	client.password = "";
 	client.loggedIn = false;
+	client.isQueryBuffer = false;
 	
 	// Receive until the peer shuts down the connection
 	do {
@@ -293,6 +311,33 @@ int RemoteCall::_addQuery(char *_query) {
 
 	return queryId;
 }
+std::string RemoteCall::_buildQuerySQF(int _bufferSize) {
+	size_t bufferSize = _bufferSize - 64; // remote overhead from buffer
+	std::string ret = "[0,1,\"\"]";
+
+	if (this->tempQuery.size() > 0) {
+		SQF sqfQuery;
+		sqfQuery.push(this->tempQueryId);
+
+		// tempQuery nosplit
+		if (this->tempQuery.size() <= bufferSize) {
+			sqfQuery.push(1);
+			sqfQuery.push(this->tempQuery.c_str());
+
+			// finish
+			this->tempQuery = "";
+			this->tempQueryId = 0;
+		}
+		else {
+			sqfQuery.push(0);
+			sqfQuery.push(this->tempQuery.substr(0, bufferSize).c_str());
+			this->tempQuery.erase(0, bufferSize);
+		}
+		ret = sqfQuery.toArray();
+	}
+
+	return ret;
+}
 
 // public
 void RemoteCall::initServer() {
@@ -300,3 +345,37 @@ void RemoteCall::initServer() {
 	this->socketThread.detach();
 }
 
+std::string RemoteCall::getStackItem() {
+	std::string returnString;
+
+	if (this->tempQuery.size() > 0) {
+		returnString = this->_buildQuerySQF(REMOTECALL_OUTPUTBUFFER);
+	}
+	else if (this->queryStack.size() > 0) {
+		// Get first query item
+		std::map<int, std::string>::iterator queryItem;
+		queryItem = this->queryStack.begin();
+
+		// Copy values
+		int queryId = queryItem->first;
+		std::string query = queryItem->second;
+
+		// Delete item from stack
+		this->queryStack.erase(queryItem);
+
+		// replace Quote with double quote
+		std::stringstream queryStream;
+		for (size_t i = 0; i <= query.length(); i++) {
+			queryStream << query[i];
+			if (query[i] == '"') {
+				queryStream << '"';
+			}
+		}
+		query = queryStream.str();
+		this->tempQuery = query;
+
+		returnString = this->_buildQuerySQF(REMOTECALL_OUTPUTBUFFER);
+	}
+
+	return returnString;
+}
