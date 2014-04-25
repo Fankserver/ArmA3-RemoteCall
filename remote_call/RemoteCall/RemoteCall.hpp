@@ -13,9 +13,11 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #pragma comment (lib, "Ws2_32.lib") // Need to link with Ws2_32.lib
+
+#define itoa _itoa
 #endif
 
-#include "../SQF/SQF.hpp"
+#include "SQF.hpp"
 
 #ifndef REMOTECALL_H
 #define REMOTECALL_H

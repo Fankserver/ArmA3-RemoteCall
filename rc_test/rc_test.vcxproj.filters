@@ -19,18 +19,18 @@
     <ClCompile Include="rc_test.cpp">
       <Filter>Sourcefiles</Filter>
     </ClCompile>
-    <ClCompile Include="RemoteCall\RemoteCall.cpp">
+    <ClCompile Include="..\remote_call\RemoteCall\RemoteCall.cpp">
       <Filter>Sourcefiles\RemoteCall</Filter>
     </ClCompile>
-    <ClCompile Include="SQF\SQF.cpp">
+    <ClCompile Include="..\remote_call\RemoteCall\SQF.cpp">
       <Filter>Sourcefiles\SQF</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="RemoteCall\RemoteCall.hpp">
+    <ClInclude Include="..\remote_call\RemoteCall\RemoteCall.hpp">
       <Filter>Sourcefiles\RemoteCall</Filter>
     </ClInclude>
-    <ClInclude Include="SQF\SQF.hpp">
+    <ClInclude Include="..\remote_call\RemoteCall\SQF.hpp">
       <Filter>Sourcefiles\SQF</Filter>
     </ClInclude>
   </ItemGroup>
