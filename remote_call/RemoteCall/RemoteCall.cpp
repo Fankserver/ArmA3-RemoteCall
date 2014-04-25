@@ -85,6 +85,7 @@ int RemoteCall::_validatePacket(packetS *_packet) {
 	) {
 		// Wrong version
 		if (_packet->version != REMOTECALL_VERSION) {
+			std::cout << "WRONG VERSION" << std::endl;
 			return RemoteCallError::ErrorVersion;
 		}
 
@@ -94,13 +95,16 @@ int RemoteCall::_validatePacket(packetS *_packet) {
 			|| _packet->command == RemoteCallCommands::QueryContentLength
 			|| _packet->command == RemoteCallCommands::QueryContent
 		) {
+			std::cout << "COMMAND OK" << std::endl;
 			return RemoteCallError::OK;
 		}
 		else {
+			std::cout << "COMMAND ERROR" << std::endl;
 			return RemoteCallError::ErrorCommand;
 		}
 	}
 	else {
+		std::cout << "WRONG PROTOCOL" << std::endl;
 		return RemoteCallError::ErrorProtocol;
 	}
 
@@ -172,9 +176,17 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 	// Client not logged in
 	else {
 		if (_packet->command == RemoteCallCommands::HandshakePassword) {
+			_packetDest->command = RemoteCallCommands::QueryContentLengthResponse;
+			_packetDest->content = new char[1];
+
 			if (strcmp(_packet->content, this->server.password) == 0) {
 				_client->loggedIn = true;
 				std::cout << "Client logged in" << std::endl;
+
+				_packetDest->content[0] = RemoteCallHandshake::PASSWORD_CORRECT;
+			}
+			else {
+				_packetDest->content[0] = RemoteCallHandshake::PASSWORD_INCORRECT;
 			}
 		}
 		else {
@@ -281,7 +293,7 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 						if (iSendResult == SOCKET_ERROR) {
 							closesocket(_socket);
 							WSACleanup();
-							return;
+							iResult = 0;
 						}
 					}
 
@@ -300,7 +312,7 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 					if (iSendResult == SOCKET_ERROR) {
 						closesocket(_socket);
 						WSACleanup();
-						return;
+						iResult = 0;
 					}
 
 					free(responsePacket->content);

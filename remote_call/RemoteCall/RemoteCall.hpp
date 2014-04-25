@@ -39,6 +39,11 @@ enum RemoteCallCommands {
 	,QueryResponseId
 	,QueryResponseResult
 };
+enum RemoteCallHandshake {
+	PASSWORD_CORRECT = 0x00
+	,PASSWORD_INCORRECT
+	,VERSION_INCORRECT
+};
 enum RemoteCallQueryContentError {
 	CONTENT_OK = 0x00
 	,CONTENT_TooShort
