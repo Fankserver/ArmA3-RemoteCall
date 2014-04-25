@@ -165,7 +165,7 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 	// Client not logged in
 	else {
 		if (_packet->command == RemoteCallCommands::HandshakePassword) {
-			_packetDest->command = RemoteCallCommands::QueryContentLengthResponse;
+			_packetDest->command = RemoteCallCommands::HandshakeResponse;
 			_packetDest->content = new char[1];
 			*_packetDestLength = REMOTECALL_PACKETSIZE + 1;
 
