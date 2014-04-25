@@ -13,8 +13,6 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #pragma comment (lib, "Ws2_32.lib") // Need to link with Ws2_32.lib
-
-#define itoa _itoa
 #endif
 
 #include "SQF.hpp"
@@ -25,6 +23,7 @@
 // compat
 #ifdef _MSC_VER
 #define snprintf _snprintf
+#define itoa _itoa
 #endif
 
 #define REMOTECALL_VERSION 1
@@ -39,6 +38,12 @@ enum RemoteCallCommands {
 	,QueryContent
 	,QueryResponseId
 	,QueryResponseResult
+};
+enum RemoteCallQueryContentError {
+	CONTENT_OK = 0x00
+	,CONTENT_TooShort
+	,CONTENT_TooLong
+	,CONTENT_WaitForContent
 };
 enum RemoteCallError {
 	OK = 0

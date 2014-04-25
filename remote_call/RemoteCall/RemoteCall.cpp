@@ -24,10 +24,7 @@ void RemoteCall::_createPacket(packetS *_packet) {
 	_packet->content = '\0';
 }
 bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_packet) {
-	// create limited packet
-	char *packet = new char[_receiveLength];
-	strncpy(packet, _receive, _receiveLength);
-
+	// long enought to be a packet
 	if (_receiveLength >= 5) {
 		// Is new packet
 		if (strcmp(_packet->identfier, "") == 0) {
@@ -112,32 +109,67 @@ int RemoteCall::_validatePacket(packetS *_packet) {
 void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_packetDest) {
 	// Client logged in
 	if (_client->loggedIn) {
+		// Query content length
 		if (_packet->command == RemoteCallCommands::QueryContentLength) {
-			unsigned short int queryLength = (unsigned short int)_packet->content;
-			if (queryLength > 0) {
-				// create temp buffer
-				_client->isQueryBuffer = true;
-				_client->queryBufferLength = queryLength;
-				_client->queryBuffer = new char[queryLength];
-				_client->queryBuffer[0] = '\0';
+			_packetDest->command = RemoteCallCommands::QueryContentLengthResponse;
+			_packetDest->content = new char[1];
+
+			// query buffer in use
+			if (_client->isQueryBuffer) {
+				_packetDest->content[0] = RemoteCallQueryContentError::CONTENT_WaitForContent;
 			}
 			else {
-				// wrong query length
+				unsigned short int queryLength = (unsigned short int)_packet->content;
+				if (queryLength > 0) {
+					if (queryLength < 32768) {
+						// create temp buffer
+						_client->isQueryBuffer = true;
+						_client->queryBufferLength = queryLength;
+						_client->queryBuffer = new char[queryLength];
+						_client->queryBuffer[0] = '\0';
+
+						// wrong query length
+						_packetDest->content[0] = RemoteCallQueryContentError::CONTENT_OK;
+					}
+					else {
+						// wrong query length
+						_packetDest->content[0] = RemoteCallQueryContentError::CONTENT_TooLong;
+					}
+				}
+				else {
+					// wrong query length
+					_packetDest->content[0] = RemoteCallQueryContentError::CONTENT_TooShort;
+				}
 			}
 		}
+
+		// Query content
 		else if (_packet->command == RemoteCallCommands::QueryContent) {
-			int queryId = this->_addQuery(_packet->content);
-			if (queryId > 0) {
-				_packetDest->command = RemoteCallCommands::QueryResponseId;
-				_packetDest->content = new char[5];
-				itoa(queryId, _packetDest->content, 5);
-				std::cout << "Add Query (" << queryId << "): " << _packet->content << std::endl;
-			}
-			else {
-				std::cout << "Query full!" << std::endl;
+			if (_client->isQueryBuffer) {
+				strcat(_client->queryBuffer, _packet->content);
+
+				if (strlen(_client->queryBuffer) == _client->queryBufferLength) {
+					int queryId = this->_addQuery(_client->queryBuffer);
+					if (queryId > 0) {
+						_packetDest->command = RemoteCallCommands::QueryResponseId;
+						_packetDest->content = new char[5];
+						itoa(queryId, _packetDest->content, 5);
+						std::cout << "Add Query (" << queryId << "): " << _packet->content << std::endl;
+					}
+					else {
+						std::cout << "Query full!" << std::endl;
+					}
+
+					_client->isQueryBuffer = false;
+					_client->queryBufferLength = 0;
+					free(_client->queryBuffer);
+					_client->queryBuffer = NULL;
+				}
 			}
 		}
 	}
+
+	// Client not logged in
 	else {
 		if (_packet->command == RemoteCallCommands::HandshakePassword) {
 			if (strcmp(_packet->content, this->server.password) == 0) {
@@ -244,11 +276,13 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 					this->_createPacket(responsePacket);
 					this->_processPacket(&client, &packet, responsePacket);
 
-					int iSendResult = send(_socket, (char*)responsePacket, 1, 0);
-					if (iSendResult == SOCKET_ERROR) {
-						closesocket(_socket);
-						WSACleanup();
-						return;
+					if (responsePacket->command != 0) {
+						int iSendResult = send(_socket, (char*)responsePacket, 1, 0);
+						if (iSendResult == SOCKET_ERROR) {
+							closesocket(_socket);
+							WSACleanup();
+							return;
+						}
 					}
 
 					free(responsePacket->content);
