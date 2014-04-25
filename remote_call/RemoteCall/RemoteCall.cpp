@@ -297,9 +297,9 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 						}
 					}
 
-					free(responsePacket->content);
-					free(responsePacket->identfier);
-					free(responsePacket);
+					delete[] responsePacket->content;
+					//delete[] responsePacket->identfier;
+					//delete responsePacket;
 
 					break;
 				}
@@ -315,9 +315,9 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 						iResult = 0;
 					}
 
-					free(responsePacket->content);
-					free(responsePacket->identfier);
-					free(responsePacket);
+					delete[] responsePacket->content;
+					//delete[] responsePacket->identfier;
+					//delete(responsePacket);
 
 					break;
 				}
@@ -337,8 +337,7 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 		}
 	} while (iResult > 0);
 
-	free(client.password);
-	free(recvbuf);
+	delete[] client.password;
 }
 #endif
 
