@@ -8,16 +8,16 @@ ArmA3-RemoteCall
 # Protocol specification
 Version 1
 
-General Informations
+General Information
 --------------------------
 
 - TCP/IP
 - Port: adjustable in config file
-- Server mean the extension.dll
+- Server means the extension.dll
 - Client is the Remote-Client
 
 
-Packet typs
+Packet types
 --------------------------
 
 **Header:**
