@@ -1,8 +1,8 @@
 ArmA3-RemoteCall
 ================
 
-Copyright 2014 nano2k, Fank
-Licensed under Creative Commons Attribution-ShareAlike 4.0 International Public License (CC-BY-SA 4.0)
+- Copyright 2014 nano2k, Fank
+- Licensed under Creative Commons Attribution-ShareAlike 4.0 International Public License (CC-BY-SA 4.0)
 
 
 # Protocol specification
