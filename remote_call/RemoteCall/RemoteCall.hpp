@@ -53,8 +53,8 @@ enum RemoteCallQueryContentError {
 };
 enum RemoteCallError {
 	OK = 0
-	,ErrorVersion
 	,ErrorPassword
+	,ErrorVersion
 	,ErrorCommand
 	,ErrorProtocol
 	,ErrorUnhandled

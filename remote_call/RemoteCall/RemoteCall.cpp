@@ -16,6 +16,7 @@ RemoteCall::~RemoteCall() {
 
 // private
 void RemoteCall::_createPacket(packetS *_packet) {
+	memset(_packet, 0, sizeof(packetS));
 	strncpy(_packet->identfier, "RC", 2);
 	_packet->version = REMOTECALL_VERSION;
 	_packet->spacer = 0xFF;
@@ -290,28 +291,42 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 						std::cout << "Command: " << (int)responsePacket->command << std::endl;
 						std::cout << "Content: " << (int)responsePacket->content[0] << std::endl;
 
-						int iSendResult = send(_socket, (char*)responsePacket, responsePacketLength, 0);
+						char *tempPacket = new char[responsePacketLength];
+						memcpy(tempPacket, responsePacket, responsePacketLength);
+						strncpy(tempPacket + REMOTECALL_PACKETSIZE, responsePacket->content, responsePacketLength - REMOTECALL_PACKETSIZE);
+
+						int iSendResult = send(_socket, tempPacket, responsePacketLength, 0);
 						if (iSendResult == SOCKET_ERROR) {
 							closesocket(_socket);
 							iResult = 0;
 						}
+
+						delete[] tempPacket;
 					}
 
 					delete[] responsePacket->content;
 					break;
 				}
-				case RemoteCallError::ErrorPassword: {
-					int responsePacketLength = 0;
+				case RemoteCallError::ErrorVersion: {
+					int responsePacketLength = REMOTECALL_PACKETSIZE + 1;
 					packetS *responsePacket = new packetS;
 					this->_createPacket(responsePacket);
-					this->_processPacket(&client, &packet, responsePacket, &responsePacketLength);
 
-					int iSendResult = send(_socket, (char*)responsePacket, responsePacketLength, 0);
+					responsePacket->command = RemoteCallCommands::HandshakeResponse;
+					responsePacket->content = new char[1];
+					responsePacket->content[0] = RemoteCallError::ErrorVersion;
+
+					char *tempPacket = new char[responsePacketLength];
+					memcpy(tempPacket, responsePacket, responsePacketLength);
+					strncpy(tempPacket + REMOTECALL_PACKETSIZE, responsePacket->content, responsePacketLength - REMOTECALL_PACKETSIZE);
+
+					int iSendResult = send(_socket, tempPacket, responsePacketLength, 0);
 					if (iSendResult == SOCKET_ERROR) {
 						closesocket(_socket);
 						iResult = 0;
 					}
 
+					delete[] tempPacket;
 					delete[] responsePacket->content;
 					break;
 				}
