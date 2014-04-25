@@ -246,6 +246,7 @@ void RemoteCall::_initServerSocket() {
 	while (1) {
 		SOCKET clientSocket = SOCKET_ERROR;
 
+		std::cout << "Wait for connection" << std::endl;
 		while (clientSocket == SOCKET_ERROR) {
 			clientSocket = accept(serverSocket, NULL, NULL);
 		}
@@ -284,7 +285,6 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 						int iSendResult = send(_socket, (char*)responsePacket, responsePacketLength, 0);
 						if (iSendResult == SOCKET_ERROR) {
 							closesocket(_socket);
-							WSACleanup();
 							iResult = 0;
 						}
 					}
@@ -301,7 +301,6 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 					int iSendResult = send(_socket, (char*)responsePacket, responsePacketLength, 0);
 					if (iSendResult == SOCKET_ERROR) {
 						closesocket(_socket);
-						WSACleanup();
 						iResult = 0;
 					}
 
@@ -317,7 +316,6 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 		}
 		else  {
 			closesocket(_socket);
-			WSACleanup();
 		}
 	} while (iResult > 0);
 
