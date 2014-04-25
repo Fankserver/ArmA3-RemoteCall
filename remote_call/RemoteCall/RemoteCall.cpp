@@ -55,19 +55,6 @@ bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_pac
 			std::cout << "Command: " << (int)_packet->command << std::endl;
 			std::cout << "Content: " << _packet->content << std::endl;
 		}
-		else {
-			// Allocate new content
-			int contentLength = strlen(_packet->content) + _receiveLength;
-			char *newContent = (char *)malloc(contentLength);
-
-			// copy and concat
-			strcpy(newContent, _packet->content);
-			strncat(newContent, _receive, _receiveLength);
-			
-			// release old & store new content
-			free(_packet->content);
-			_packet->content = newContent;
-		}
 	}
 	else {
 		return false;
@@ -110,13 +97,14 @@ int RemoteCall::_validatePacket(packetS *_packet) {
 
 	return RemoteCallError::ErrorUnhandled;
 }
-void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_packetDest) {
+void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_packetDest, int *_packetDestLength) {
 	// Client logged in
 	if (_client->loggedIn) {
 		// Query content length
 		if (_packet->command == RemoteCallCommands::QueryContentLength) {
 			_packetDest->command = RemoteCallCommands::QueryContentLengthResponse;
 			_packetDest->content = new char[1];
+			*_packetDestLength = REMOTECALL_PACKETSIZE + 1;
 
 			// query buffer in use
 			if (_client->isQueryBuffer) {
@@ -157,6 +145,7 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 					if (queryId > 0) {
 						_packetDest->command = RemoteCallCommands::QueryResponseId;
 						_packetDest->content = new char[5];
+						*_packetDestLength = REMOTECALL_PACKETSIZE + 5;
 						itoa(queryId, _packetDest->content, 5);
 						std::cout << "Add Query (" << queryId << "): " << _packet->content << std::endl;
 					}
@@ -166,7 +155,7 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 
 					_client->isQueryBuffer = false;
 					_client->queryBufferLength = 0;
-					free(_client->queryBuffer);
+					delete[] _client->queryBuffer;
 					_client->queryBuffer = NULL;
 				}
 			}
@@ -178,6 +167,7 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 		if (_packet->command == RemoteCallCommands::HandshakePassword) {
 			_packetDest->command = RemoteCallCommands::QueryContentLengthResponse;
 			_packetDest->content = new char[1];
+			*_packetDestLength = REMOTECALL_PACKETSIZE + 1;
 
 			if (strcmp(_packet->content, this->server.password) == 0) {
 				_client->loggedIn = true;
@@ -265,11 +255,11 @@ void RemoteCall::_initServerSocket() {
 }
 void RemoteCall::_initClientSocket(SOCKET _socket) {
 	clientS client;
+	memset(&client, 0, sizeof(clientS));
 	int iResult;
 	int recvBufLen = REMOTECALL_SOCKBUFFER;
 	char recvbuf[REMOTECALL_SOCKBUFFER];
 
-	client.password = "";
 	client.loggedIn = false;
 	client.isQueryBuffer = false;
 	
@@ -284,12 +274,13 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 			int packetError = this->_validatePacket(&packet);
 			switch (packetError) {
 				case RemoteCallError::OK: {
+					int responsePacketLength = 0;
 					packetS *responsePacket = new packetS;
 					this->_createPacket(responsePacket);
-					this->_processPacket(&client, &packet, responsePacket);
+					this->_processPacket(&client, &packet, responsePacket, &responsePacketLength);
 
 					if (responsePacket->command != 0) {
-						int iSendResult = send(_socket, (char*)responsePacket, 1, 0);
+						int iSendResult = send(_socket, (char*)responsePacket, responsePacketLength, 0);
 						if (iSendResult == SOCKET_ERROR) {
 							closesocket(_socket);
 							WSACleanup();
@@ -298,17 +289,15 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 					}
 
 					delete[] responsePacket->content;
-					//delete[] responsePacket->identfier;
-					//delete responsePacket;
-
 					break;
 				}
 				case RemoteCallError::ErrorPassword: {
+					int responsePacketLength = 0;
 					packetS *responsePacket = new packetS;
 					this->_createPacket(responsePacket);
-					this->_processPacket(&client, &packet, responsePacket);
+					this->_processPacket(&client, &packet, responsePacket, &responsePacketLength);
 
-					int iSendResult = send(_socket, (char*)responsePacket, 1, 0);
+					int iSendResult = send(_socket, (char*)responsePacket, responsePacketLength, 0);
 					if (iSendResult == SOCKET_ERROR) {
 						closesocket(_socket);
 						WSACleanup();
@@ -316,9 +305,6 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 					}
 
 					delete[] responsePacket->content;
-					//delete[] responsePacket->identfier;
-					//delete(responsePacket);
-
 					break;
 				}
 				default: {
@@ -336,8 +322,6 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 			WSACleanup();
 		}
 	} while (iResult > 0);
-
-	delete[] client.password;
 }
 #endif
 

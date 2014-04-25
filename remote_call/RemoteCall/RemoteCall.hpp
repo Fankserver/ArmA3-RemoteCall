@@ -29,6 +29,7 @@
 #define REMOTECALL_VERSION 1
 #define REMOTECALL_SOCKBUFFER 512
 #define REMOTECALL_OUTPUTBUFFER 4096
+#define REMOTECALL_PACKETSIZE 5
 
 enum RemoteCallCommands {
 	HandshakePassword = 0x00
@@ -66,7 +67,6 @@ private:
 		char *password;
 	};
 	struct clientS {
-		char *password;
 		bool loggedIn;
 		bool isQueryBuffer;
 		unsigned short int queryBufferLength;
@@ -92,7 +92,7 @@ private:
 	void _createPacket(packetS *Packet);
 	bool _unpackPacket(char *Receive, int ReceiveLength, packetS *Packet);
 	int _validatePacket(packetS *Packet);
-	void _processPacket(clientS *Client, packetS *Packet, packetS *PacketDest);
+	void _processPacket(clientS *Client, packetS *Packet, packetS *PacketDest, int *PacketDestLength);
 
 	void _initServerSocket();
 	void _initClientSocket(SOCKET Socket);
