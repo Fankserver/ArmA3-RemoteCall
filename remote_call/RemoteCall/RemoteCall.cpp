@@ -176,6 +176,7 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 				_packetDest->content[0] = RemoteCallHandshake::PASSWORD_CORRECT;
 			}
 			else {
+				std::cout << "Wrong password" << std::endl;
 				_packetDest->content[0] = RemoteCallHandshake::PASSWORD_INCORRECT;
 			}
 		}
