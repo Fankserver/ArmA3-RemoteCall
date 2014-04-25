@@ -35,6 +35,7 @@ enum RemoteCallCommands {
 	HandshakePassword = 0x00
 	,HandshakeResponse
 	,QueryContentLength = 0x10
+	,QueryContentLengthResponse
 	,QueryContent
 	,QueryResponseId
 	,QueryResponseResult

@@ -30,11 +30,17 @@ Packet types
 3. Handshake Response (Server -> Client):
 `HEADER + | 0x01 | (0x00 (ok) | 0x01 (wrong password) | 0x02 (wrong version))`
 
-4. Query (Server <- Client):
-`HEADER + | 0x10 | content`
+4. Query content length (Server <- Client);
+`HEADER + | 0x10 | 2 byte length`
 
-5. Query Response (Server -> Client):
-`HEADER + | 0x11 | 2 byte query id`
+5. Query content length response (Server -> Client):
+`HEADER + | 0x11 | (0x00 (ok) | 0x01 (too short) | 0x02 (too long))`
 
-6. Query Result Response (Server -> Client):
-`HEADER + | 0x12 | 2 byte query id | content`
+6. Query (Server <- Client):
+`HEADER + | 0x12 | content`
+
+7. Query Response (Server -> Client):
+`HEADER + | 0x13 | 2 byte query id`
+
+8. Query Result Response (Server -> Client):
+`HEADER + | 0x14 | 2 byte query id | content`
