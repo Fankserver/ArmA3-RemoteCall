@@ -49,6 +49,7 @@ bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_pac
 				strcpy(_packet->content, "");
 			}
 
+			std::cout << "INPUT PACKET:" << std::endl;
 			std::cout << "Identifier: " << _packet->identfier[0] << _packet->identfier[1] << std::endl;
 			std::cout << "Version: " << (int)_packet->version << std::endl;
 			std::cout << "Spacer: " << (int)_packet->spacer << std::endl;
@@ -282,6 +283,13 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 					this->_processPacket(&client, &packet, responsePacket, &responsePacketLength);
 
 					if (responsePacket->command != 0) {
+						std::cout << "OUTPUT PACKET:" << std::endl;
+						std::cout << "Identifier: " << responsePacket->identfier[0] << responsePacket->identfier[1] << std::endl;
+						std::cout << "Version: " << (int)responsePacket->version << std::endl;
+						std::cout << "Spacer: " << (int)responsePacket->spacer << std::endl;
+						std::cout << "Command: " << (int)responsePacket->command << std::endl;
+						std::cout << "Content: " << (int)responsePacket->content[0] << std::endl;
+
 						int iSendResult = send(_socket, (char*)responsePacket, responsePacketLength, 0);
 						if (iSendResult == SOCKET_ERROR) {
 							closesocket(_socket);
