@@ -32,6 +32,14 @@ enum RemoteCallCommands {
 	,QueryResponseId
 	,QueryResponseResult
 };
+enum RemoteCallError {
+	OK = 0
+	,ErrorVersion
+	,ErrorPassword
+	,ErrorCommand
+	,ErrorProtocol
+	,ErrorUnhandled
+};
 
 class RemoteCall {
 private:
@@ -53,15 +61,13 @@ private:
 
 private:
 	serverS server;
-	char *header;
-
 	std::thread socketThread;
-	std::map<int, char*> queryStack;
+	std::map<int, std::string> queryStack;
 
 	// Packet management
 	void _createPacket(packetS *Packet);
 	bool _unpackPacket(char *Receive, int ReceiveLength, packetS *Packet);
-	bool _validatePacket(packetS *Packet);
+	int _validatePacket(packetS *Packet);
 	void _processPacket(clientS *Client, packetS *Packet, packetS *PacketDest);
 
 	void _initServerSocket();

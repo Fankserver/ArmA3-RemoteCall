@@ -75,7 +75,7 @@ bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_pac
 
 	return true;
 }
-bool RemoteCall::_validatePacket(packetS *_packet) {
+int RemoteCall::_validatePacket(packetS *_packet) {
 	// Valid RemoteCall packet
 	if (
 		_packet->identfier[0] == 'R' && _packet->identfier[1] == 'C'
@@ -85,22 +85,25 @@ bool RemoteCall::_validatePacket(packetS *_packet) {
 	) {
 		// Wrong version
 		if (_packet->version != REMOTECALL_VERSION) {
-			return false;
+			return RemoteCallError::ErrorVersion;
 		}
 
-		// Check command
+		// Check client command
 		if (
 			_packet->command == RemoteCallCommands::HandshakePassword
-			|| _packet->command == RemoteCallCommands::HandshakeResponse
 			|| _packet->command == RemoteCallCommands::Query
-			|| _packet->command == RemoteCallCommands::QueryResponseId
-			|| _packet->command == RemoteCallCommands::QueryResponseResult
 		) {
-			return true;
+			return RemoteCallError::OK;
+		}
+		else {
+			return RemoteCallError::ErrorCommand;
 		}
 	}
+	else {
+		return RemoteCallError::ErrorProtocol;
+	}
 
-	return false;
+	return RemoteCallError::ErrorUnhandled;
 }
 void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_packetDest) {
 	// Client logged in
@@ -207,43 +210,71 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 
 	client.password = "";
 	client.loggedIn = false;
-
+	
 	// Receive until the peer shuts down the connection
 	do {
 		iResult = recv(_socket, recvbuf, recvBufLen, 0);
 		if (iResult > 0) {
 			packetS packet;
 			memset(&packet, 0, sizeof(packetS));
-			std::cout << "Bytes received: " << iResult << std::endl;
-
 			this->_unpackPacket(recvbuf, iResult, &packet);
-			if (this->_validatePacket(&packet)) {
-				std::cout << "PACKET VALID" << std::endl;
 
-				packetS responsePacket;
-				this->_createPacket(&responsePacket);
-				this->_processPacket(&client, &packet, &responsePacket);
-			}
+			int packetError = this->_validatePacket(&packet);
+			switch (packetError) {
+				case RemoteCallError::OK: {
+					packetS *responsePacket = new packetS;
+					this->_createPacket(responsePacket);
+					this->_processPacket(&client, &packet, responsePacket);
 
-			int iSendResult = send(_socket, "1", 1, 0);
-			if (iSendResult == SOCKET_ERROR) {
-				std::cout << "send failed with error: " << WSAGetLastError() << "\n";
-				closesocket(_socket);
-				WSACleanup();
-				return;
+					int iSendResult = send(_socket, (char*)responsePacket, 1, 0);
+					if (iSendResult == SOCKET_ERROR) {
+						closesocket(_socket);
+						WSACleanup();
+						return;
+					}
+
+					free(responsePacket->content);
+					free(responsePacket->identfier);
+					free(responsePacket);
+
+					break;
+				}
+				case RemoteCallError::ErrorPassword: {
+					packetS *responsePacket = new packetS;
+					this->_createPacket(responsePacket);
+					this->_processPacket(&client, &packet, responsePacket);
+
+					int iSendResult = send(_socket, (char*)responsePacket, 1, 0);
+					if (iSendResult == SOCKET_ERROR) {
+						closesocket(_socket);
+						WSACleanup();
+						return;
+					}
+
+					free(responsePacket->content);
+					free(responsePacket->identfier);
+					free(responsePacket);
+
+					break;
+				}
+				default: {
+					// unexpected error
+					closesocket(_socket);
+					iResult = 0;
+				}
 			}
-			
-			std::cout << "Bytes sent: " << iSendResult << std::endl;
 		}
 		else if (iResult == 0) {
 			std::cout << "Connection closing...\n";
 		}
 		else  {
-			std::cout << "recv failed with error: " << WSAGetLastError() << "\n";
 			closesocket(_socket);
 			WSACleanup();
 		}
 	} while (iResult > 0);
+
+	free(client.password);
+	free(recvbuf);
 }
 #endif
 
@@ -255,7 +286,7 @@ int RemoteCall::_addQuery(char *_query) {
 		}
 		catch (...) {
 			queryId = i;
-			this->queryStack.insert(std::pair<int, char*>(queryId, _query));
+			this->queryStack.insert(std::pair<int, std::string>(queryId, _query));
 			break;
 		}
 	}
