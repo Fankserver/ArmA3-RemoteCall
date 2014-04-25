@@ -1,4 +1,4 @@
-ArmA3-RemoteCall
+ArmA3-RemoteCall ![CC-BY-SA 4.0](http://i.creativecommons.org/l/by-sa/3.0/88x31.png)
 ================
 
 - Copyright 2014 nano2k, Fank
