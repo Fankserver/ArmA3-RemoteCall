@@ -4,19 +4,19 @@ ArmA3-RemoteCall
 Copyright 2014 nano2k, Fank
 
 
-# Protokoll-Spezifikation
+# Protocol specification
 Version 1
 
-Allgemeine Informationen
+General Informations
 --------------------------
 
-- TCP/IP-basiert
-- Port: ArmA-Gameserver-Port + 6
-- Mit "Server" ist die RV-Extension ("remotecall.dll") gemeint
-- Mit "Client" ist der Remote-Client gemeint
+- TCP/IP
+- Port: adjustable in config file
+- Server mean the extension.dll
+- Client is the Remote-Client
 
 
-Paket-Typen
+Packet typs
 --------------------------
 
 **Header:**
