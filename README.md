@@ -19,30 +19,21 @@ Allgemeine Informationen
 Paket-Typen
 --------------------------
 
-1. Header:
+**Header:**
 
-'R'(0x52) 'C'(0x43) | 1 Byte Version | 0xFF
+`'R'(0x52) 'C'(0x43) | 1 Byte Version | 0xFF`
 
 2. Handshake (Server <- Client):
-
-HEADER + | 0x00 | password
+`HEADER + | 0x00 | password`
 
 3. Handshake Response (Server -> Client):
-
-HEADER + | 0x01 | (0x00 (ok) | 0x01 (wrong password) | 0x02 (wrong version))
+`HEADER + | 0x01 | (0x00 (ok) | 0x01 (wrong password) | 0x02 (wrong version))`
 
 4. Query (Server <- Client):
-
-HEADER + | 0x10 | content
+`HEADER + | 0x10 | content`
 
 5. Query Response (Server -> Client):
-
-HEADER + | 0x11 | 2 byte query id
+`HEADER + | 0x11 | 2 byte query id`
 
 6. Query Result Response (Server -> Client):
-
-HEADER + | 0x12 | 2 byte query id | content
-
-7. Keep Alive (Server <- Client) every 60 seconds or less:
-
-HEADER + | 0x20
+`HEADER + | 0x12 | 2 byte query id | content`
