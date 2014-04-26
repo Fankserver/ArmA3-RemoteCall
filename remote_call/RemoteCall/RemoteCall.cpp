@@ -30,7 +30,7 @@ bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_pac
 		// Is new packet
 		if (strcmp(_packet->identfier, "") == 0) {
 			// wrap the packet
-			memcpy(_packet, _receive, _receiveLength);
+			memcpy(_packet, _receive, sizeof(packetS));
 
 			// contains content
 			if (_receiveLength >= 6) {
@@ -105,7 +105,7 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 				unsigned short int queryLength = 0;
 				memcpy(&queryLength, _packet->content, 2);
 				if (queryLength > 0) {
-					if (queryLength < 32768) {
+					if (queryLength < 131072) {
 						// create temp buffer
 						_client->isQueryBuffer = true;
 						_client->queryBufferLength = queryLength;
@@ -139,10 +139,9 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 						_packetDest->content = new char[2];
 						*_packetDestLength = REMOTECALL_PACKETSIZE + 2;
 						memcpy(_packetDest->content, &queryId, 2);
-						std::cout << "Add Query (" << queryId << "): " << _packet->content << std::endl;
 					}
 					else {
-						std::cout << "Query full!" << std::endl;
+						// Query full
 					}
 
 					_client->isQueryBuffer = false;
@@ -251,14 +250,14 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 	memset(&client, 0, sizeof(clientS));
 	int iResult;
 	int recvBufLen = REMOTECALL_SOCKBUFFER;
-	char recvbuf[REMOTECALL_SOCKBUFFER];
+	char *recvbuf = new char[REMOTECALL_SOCKBUFFER];
 
 	client.loggedIn = false;
 	client.isQueryBuffer = false;
-	
+
 	// Receive until the peer shuts down the connection
 	do {
-		iResult = recv(_socket, recvbuf, recvBufLen, 0);
+		iResult = recv(_socket, recvbuf, recvBufLen, MSG_PARTIAL);
 		if (iResult > 0) {
 			packetS packet;
 			memset(&packet, 0, sizeof(packetS));
@@ -287,6 +286,7 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 					}
 
 					delete[] responsePacket->content;
+					delete[] responsePacket;
 					break;
 				}
 				case RemoteCallError::ErrorVersion: {
@@ -310,6 +310,7 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 
 					delete[] tempPacket;
 					delete[] responsePacket->content;
+					delete[] responsePacket;
 					break;
 				}
 				default: {
@@ -323,6 +324,13 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 			closesocket(_socket);
 		}
 	} while (iResult > 0);
+
+	delete[] recvbuf;
+
+	//TODO: heap corruption detected after normal block
+	//if (client.queryBuffer != NULL) {
+	//	delete[] client.queryBuffer;
+	//}
 }
 #endif
 
@@ -386,7 +394,7 @@ void RemoteCall::initServer() {
 }
 
 std::string RemoteCall::getStackItem() {
-	std::string returnString;
+	std::string returnString = "[]";
 
 	if (this->tempQuery.size() > 0) {
 		returnString = this->_buildQuerySQF(REMOTECALL_OUTPUTBUFFER);
@@ -411,9 +419,8 @@ std::string RemoteCall::getStackItem() {
 				queryStream << '"';
 			}
 		}
-		query = queryStream.str();
 		this->tempQueryId = queryId;
-		this->tempQuery = query;
+		this->tempQuery = queryStream.str();
 
 		returnString = this->_buildQuerySQF(REMOTECALL_OUTPUTBUFFER);
 	}

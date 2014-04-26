@@ -5,8 +5,8 @@ item0[] = {"init",0,250,-36.768673,533.704102,53.231323,583.704102,0.000000,"ini
 item1[] = {"true",8,218,-37.364014,606.966980,52.635986,656.966980,0.000000,"true"};
 item2[] = {"Loadbalancer",2,250,-37.366936,680.859558,52.633080,730.859558,0.000000,"Loadbalancer"};
 item3[] = {"Time_Check_5sek",4,218,-36.925579,763.796814,53.074421,813.796814,0.000000,"Time Check" \n "5sek"};
-item4[] = {"Extension_call",2,250,-37.303535,841.277954,52.696480,891.277954,0.000000,"Extension call"};
-item5[] = {"true",8,4314,-37.688129,933.801575,52.311871,983.801575,0.000000,"true"};
+item4[] = {"Extension_call",2,4346,-37.303535,841.277954,52.696480,891.277954,0.000000,"Extension call"};
+item5[] = {"true",8,218,-37.688129,933.801575,52.311871,983.801575,0.000000,"true"};
 item6[] = {"",7,210,-300.321777,955.025696,-292.321747,963.025696,0.000000,""};
 item7[] = {"",7,210,-300.057068,701.597839,-292.057068,709.597839,0.000000,""};
 link0[] = {0,1};
@@ -17,8 +17,8 @@ link4[] = {4,5};
 link5[] = {5,6};
 link6[] = {6,7};
 link7[] = {7,2};
-globals[] = {0.000000,0,0,0,0,640,480,1,11,6316128,1,-417.548584,399.303040,1112.951538,473.334656,1204,951,1};
-window[] = {2,-1,-1,-1,-1,785,25,1668,25,3,1222};
+globals[] = {0.000000,0,0,0,0,640,480,1,11,6316128,1,-417.548584,399.303040,1112.951538,473.334656,933,615,1};
+window[] = {0,-1,-1,-1,-1,960,200,1843,200,1,951};
 *//*%FSM</HEAD>*/
 class FSM
 {
@@ -75,7 +75,30 @@ class FSM
     class Extension_call
     {
       name = "Extension_call";
-      init = /*%FSM<STATEINIT""">*/"call compile (""remote_call"" callExtension ""WorkerStack"");" \n
+      init = /*%FSM<STATEINIT""">*/"private [""_queryStack"",""_continue"",""_query"",""_queryId"",""_queryComplete""];" \n
+       "	" \n
+       "_continue = true;" \n
+       "_queryComplete = false;" \n
+       "_queryId = 0;" \n
+       "_query = """";" \n
+       "" \n
+       "while {_continue} do {" \n
+       "	_queryStack = call compile (""remote_call"" callExtension ""WorkerStack"");" \n
+       "	if ((count _queryStack) > 0) then {" \n
+       "		_queryId = _queryStack select 0;" \n
+       "		_queryComplete = if ((_queryStack select 1) == 1) then {true} else {false};" \n
+       "		_query = _query + (_queryStack select 2);" \n
+       "	}" \n
+       "	else {" \n
+       "		_continue = false;" \n
+       "	};" \n
+       "	" \n
+       "	if (_queryComplete) then {" \n
+       "		call compile _query;" \n
+       "		_queryId = 0;" \n
+       "		_query = """";" \n
+       "	};" \n
+       "};" \n
        "" \n
        "_rcWorkerTimer = time;"/*%FSM</STATEINIT""">*/;
       precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
