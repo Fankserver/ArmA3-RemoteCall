@@ -44,6 +44,7 @@ enum RemoteCallHandshake {
 	PASSWORD_CORRECT = 0x00
 	,PASSWORD_INCORRECT
 	,VERSION_INCORRECT
+	,COMMAND_INCORRECT
 };
 enum RemoteCallQueryContentError {
 	CONTENT_OK = 0x00

@@ -26,7 +26,7 @@ void RemoteCall::_createPacket(packetS *_packet) {
 }
 bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_packet) {
 	// long enought to be a packet
-	if (_receiveLength >= 5) {
+	if (_receiveLength >= REMOTECALL_PACKETSIZE) {
 		// Is new packet
 		if (strcmp(_packet->identfier, "") == 0) {
 			// wrap the packet
@@ -36,11 +36,11 @@ bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_pac
 			if (_receiveLength >= 6) {
 
 				// Allocate new content
-				int contentLength = _receiveLength - 5;
+				int contentLength = _receiveLength - REMOTECALL_PACKETSIZE;
 				_packet->content = new char[contentLength];
 
 				// copy content
-				strncpy(_packet->content, _receive + 5, contentLength);
+				memcpy(_packet->content, _receive + REMOTECALL_PACKETSIZE, contentLength);
 				_packet->content[contentLength] = '\0';
 			}
 
@@ -55,7 +55,7 @@ bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_pac
 			std::cout << "Version: " << (int)_packet->version << std::endl;
 			std::cout << "Spacer: " << (int)_packet->spacer << std::endl;
 			std::cout << "Command: " << (int)_packet->command << std::endl;
-			std::cout << "Content: " << _packet->content << std::endl;
+			std::cout << "Content: " << (int)_packet->content << std::endl;
 		}
 	}
 	else {
@@ -74,7 +74,6 @@ int RemoteCall::_validatePacket(packetS *_packet) {
 	) {
 		// Wrong version
 		if (_packet->version != REMOTECALL_VERSION) {
-			std::cout << "WRONG VERSION" << std::endl;
 			return RemoteCallError::ErrorVersion;
 		}
 
@@ -84,16 +83,13 @@ int RemoteCall::_validatePacket(packetS *_packet) {
 			|| _packet->command == RemoteCallCommands::QueryContentLength
 			|| _packet->command == RemoteCallCommands::QueryContent
 		) {
-			std::cout << "COMMAND OK" << std::endl;
 			return RemoteCallError::OK;
 		}
 		else {
-			std::cout << "COMMAND ERROR" << std::endl;
 			return RemoteCallError::ErrorCommand;
 		}
 	}
 	else {
-		std::cout << "WRONG PROTOCOL" << std::endl;
 		return RemoteCallError::ErrorProtocol;
 	}
 
@@ -113,7 +109,8 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 				_packetDest->content[0] = RemoteCallQueryContentError::CONTENT_WaitForContent;
 			}
 			else {
-				unsigned short int queryLength = (unsigned short int)_packet->content;
+				unsigned short int queryLength = 0;
+				memcpy(&queryLength, _packet->content, 2);
 				if (queryLength > 0) {
 					if (queryLength < 32768) {
 						// create temp buffer
@@ -146,9 +143,9 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 					int queryId = this->_addQuery(_client->queryBuffer);
 					if (queryId > 0) {
 						_packetDest->command = RemoteCallCommands::QueryResponseId;
-						_packetDest->content = new char[5];
-						*_packetDestLength = REMOTECALL_PACKETSIZE + 5;
-						itoa(queryId, _packetDest->content, 5);
+						_packetDest->content = new char[2];
+						*_packetDestLength = REMOTECALL_PACKETSIZE + 2;
+						memcpy(_packetDest->content, &queryId, 2);
 						std::cout << "Add Query (" << queryId << "): " << _packet->content << std::endl;
 					}
 					else {
@@ -157,8 +154,6 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 
 					_client->isQueryBuffer = false;
 					_client->queryBufferLength = 0;
-					delete[] _client->queryBuffer;
-					_client->queryBuffer = NULL;
 				}
 			}
 		}
@@ -166,24 +161,21 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 
 	// Client not logged in
 	else {
+		_packetDest->command = RemoteCallCommands::HandshakeResponse;
+		_packetDest->content = new char[1];
+		*_packetDestLength = REMOTECALL_PACKETSIZE + 1;
 		if (_packet->command == RemoteCallCommands::HandshakePassword) {
-			_packetDest->command = RemoteCallCommands::HandshakeResponse;
-			_packetDest->content = new char[1];
-			*_packetDestLength = REMOTECALL_PACKETSIZE + 1;
-
 			if (strcmp(_packet->content, this->server.password) == 0) {
 				_client->loggedIn = true;
-				std::cout << "Client logged in" << std::endl;
 
 				_packetDest->content[0] = RemoteCallHandshake::PASSWORD_CORRECT;
 			}
 			else {
-				std::cout << "Wrong password" << std::endl;
 				_packetDest->content[0] = RemoteCallHandshake::PASSWORD_INCORRECT;
 			}
 		}
 		else {
-			std::cout << "Wrong command client not logged in" << std::endl;
+			_packetDest->content[0] = RemoteCallHandshake::COMMAND_INCORRECT;
 		}
 	}
 }

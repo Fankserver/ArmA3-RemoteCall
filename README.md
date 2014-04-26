@@ -28,7 +28,7 @@ Packet types
 `HEADER + | 0x00 | password`
 
 3. Handshake Response (Server -> Client):
-`HEADER + | 0x01 | (0x00 (ok) | 0x01 (wrong password) | 0x02 (wrong version))`
+`HEADER + | 0x01 | (0x00 (ok) | 0x01 (wrong password) | 0x02 (wrong version) | 0x03 (wrong command))`
 
 4. Query content length (Server <- Client);
 `HEADER + | 0x10 | 2 byte length`
