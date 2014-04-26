@@ -1,6 +1,7 @@
 #include <sstream>
 #include <thread>
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <algorithm>
@@ -100,6 +101,8 @@ private:
 
 	int _addQuery(char *Query);
 	std::string _buildQuerySQF(int _bufferSize);
+
+	void _log(const char *);
 
 public:
 	RemoteCall();

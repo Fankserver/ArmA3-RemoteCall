@@ -49,13 +49,6 @@ bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_pac
 				_packet->content = new char[1];
 				strcpy(_packet->content, "");
 			}
-
-			std::cout << "INPUT PACKET:" << std::endl;
-			std::cout << "Identifier: " << _packet->identfier[0] << _packet->identfier[1] << std::endl;
-			std::cout << "Version: " << (int)_packet->version << std::endl;
-			std::cout << "Spacer: " << (int)_packet->spacer << std::endl;
-			std::cout << "Command: " << (int)_packet->command << std::endl;
-			std::cout << "Content: " << (int)_packet->content << std::endl;
 		}
 	}
 	else {
@@ -193,7 +186,9 @@ void RemoteCall::_initServerSocket() {
 	WSADATA winsockData;
 	iResult = WSAStartup(MAKEWORD(2, 2), &winsockData);
 	if (iResult != 0) {
-		printf("WSAStartup failed with error: %d\n", iResult);
+		std::stringstream errorMsg;
+		errorMsg << "WSAStartup failed with error: " << iResult;
+		this->_log(errorMsg.str().c_str());
 		exit(1);
 	}
 
@@ -208,7 +203,9 @@ void RemoteCall::_initServerSocket() {
 	itoa(3310, serverPort, 10);
 	iResult = getaddrinfo(NULL, serverPort, &hints, &result);
 	if (iResult != 0) {
-		printf("getaddrinfo failed with error: %d\n", iResult);
+		std::stringstream errorMsg;
+		errorMsg << "getaddrinfo failed with error: " << iResult;
+		this->_log(errorMsg.str().c_str());
 		WSACleanup();
 		exit(1);
 	}
@@ -216,7 +213,9 @@ void RemoteCall::_initServerSocket() {
 	// Create a SOCKET for connecting to server
 	serverSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 	if (serverSocket == INVALID_SOCKET) {
-		printf("socket failed with error: %ld\n", WSAGetLastError());
+		std::stringstream errorMsg;
+		errorMsg << "socket failed with error: " << WSAGetLastError();
+		this->_log(errorMsg.str().c_str());
 		freeaddrinfo(result);
 		WSACleanup();
 		exit(1);
@@ -225,7 +224,9 @@ void RemoteCall::_initServerSocket() {
 	// Setup the TCP listening socket
 	iResult = bind(serverSocket, result->ai_addr, (int)result->ai_addrlen);
 	if (iResult == SOCKET_ERROR) {
-		printf("bind failed with error: %d\n", WSAGetLastError());
+		std::stringstream errorMsg;
+		errorMsg << "bind failed with error: " << WSAGetLastError();
+		this->_log(errorMsg.str().c_str());
 		freeaddrinfo(result);
 		closesocket(serverSocket);
 		WSACleanup();
@@ -235,17 +236,13 @@ void RemoteCall::_initServerSocket() {
 	freeaddrinfo(result);
 
 	listen(serverSocket, 10);
-	std::cout << "Server startup: " << this->server.port << std::endl;
-
 	while (1) {
 		SOCKET clientSocket = SOCKET_ERROR;
 
-		std::cout << "Wait for connection" << std::endl;
 		while (clientSocket == SOCKET_ERROR) {
 			clientSocket = accept(serverSocket, NULL, NULL);
 		}
 
-		std::cout << "Client connected" << std::endl;
 		std::thread(std::bind(&RemoteCall::_initClientSocket, this, clientSocket)).detach();
 	}
 }
@@ -276,13 +273,6 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 					this->_processPacket(&client, &packet, responsePacket, &responsePacketLength);
 
 					if (responsePacket->command != 0) {
-						std::cout << "OUTPUT PACKET:" << std::endl;
-						std::cout << "Identifier: " << responsePacket->identfier[0] << responsePacket->identfier[1] << std::endl;
-						std::cout << "Version: " << (int)responsePacket->version << std::endl;
-						std::cout << "Spacer: " << (int)responsePacket->spacer << std::endl;
-						std::cout << "Command: " << (int)responsePacket->command << std::endl;
-						std::cout << "Content: " << (int)responsePacket->content[0] << std::endl;
-
 						char *tempPacket = new char[responsePacketLength];
 						memcpy(tempPacket, responsePacket, responsePacketLength);
 						strncpy(tempPacket + REMOTECALL_PACKETSIZE, responsePacket->content, responsePacketLength - REMOTECALL_PACKETSIZE);
@@ -333,8 +323,6 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 			closesocket(_socket);
 		}
 	} while (iResult > 0);
-
-	std::cout << "Connection closing...\n";
 }
 #endif
 
@@ -381,6 +369,16 @@ std::string RemoteCall::_buildQuerySQF(int _bufferSize) {
 	return ret;
 }
 
+void RemoteCall::_log(const char *_message) {
+#ifdef LOGCOUT
+	std::cout << _message << std::endl;
+#else
+	std::ofstream logFile("rc.log");
+	logFile << _message << std::endl;
+	logFile.close();
+#endif
+}
+
 // public
 void RemoteCall::initServer() {
 	this->socketThread = std::thread(std::bind(&RemoteCall::_initServerSocket, this));
@@ -414,6 +412,7 @@ std::string RemoteCall::getStackItem() {
 			}
 		}
 		query = queryStream.str();
+		this->tempQueryId = queryId;
 		this->tempQuery = query;
 
 		returnString = this->_buildQuerySQF(REMOTECALL_OUTPUTBUFFER);
