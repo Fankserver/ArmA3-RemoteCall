@@ -4,6 +4,7 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <algorithm>
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,7 +30,6 @@
 
 #define REMOTECALL_VERSION 1
 #define REMOTECALL_SOCKBUFFER 512
-#define REMOTECALL_OUTPUTBUFFER 4096
 #define REMOTECALL_PACKETSIZE 5
 
 enum RemoteCallCommands {
@@ -71,7 +71,7 @@ private:
 	struct clientS {
 		bool loggedIn;
 		bool isQueryBuffer;
-		unsigned short int queryBufferLength;
+		size_t queryBufferLength;
 		char *queryBuffer;
 	};
 	struct packetS {
@@ -85,7 +85,9 @@ private:
 private:
 	serverS server;
 	std::thread socketThread;
+
 	std::map<int, std::string> queryStack;
+	std::mutex queryStackMutex;
 
 	int tempQueryId;
 	std::string tempQuery;
@@ -102,14 +104,14 @@ private:
 	int _addQuery(char *Query);
 	std::string _buildQuerySQF(int _bufferSize);
 
-	void _log(const char *);
+	void _log(const char *Message);
 
 public:
 	RemoteCall();
 	~RemoteCall();
 
 	void initServer();
-	std::string getStackItem();
+	std::string getStackItem(int OutputBuffer);
 };
 
 #endif

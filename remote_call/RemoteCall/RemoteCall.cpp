@@ -21,8 +21,7 @@ void RemoteCall::_createPacket(packetS *_packet) {
 	_packet->version = REMOTECALL_VERSION;
 	_packet->spacer = 0xFF;
 	_packet->command = 0x00;
-	_packet->content = new char[1];
-	_packet->content = '\0';
+	_packet->content = NULL;
 }
 bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_packet) {
 	// long enought to be a packet
@@ -106,11 +105,17 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 				memcpy(&queryLength, _packet->content, 2);
 				if (queryLength > 0) {
 					if (queryLength < 131072) {
-						// create temp buffer
 						_client->isQueryBuffer = true;
-						_client->queryBufferLength = queryLength;
-						_client->queryBuffer = new char[queryLength];
-						_client->queryBuffer[0] = '\0';
+
+						// create temp buffer
+						_client->queryBufferLength = sizeof(char) + queryLength;
+						char *queryBuffer = (char*)malloc(_client->queryBufferLength);
+						memset(queryBuffer, 0, _client->queryBufferLength);
+						if (queryBuffer == NULL) exit(1);
+						if (_client->queryBuffer != NULL) {
+							free(_client->queryBuffer);
+						}
+						_client->queryBuffer = queryBuffer;
 
 						// wrong query length
 						_packetDest->content[0] = RemoteCallQueryContentError::CONTENT_OK;
@@ -132,8 +137,8 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 			if (_client->isQueryBuffer) {
 				strcat(_client->queryBuffer, _packet->content);
 
-				if (strlen(_client->queryBuffer) == _client->queryBufferLength) {
-					int queryId = this->_addQuery(_client->queryBuffer);
+				if (strlen(_client->queryBuffer) == (_client->queryBufferLength - 1)) {
+					short int queryId = this->_addQuery(_client->queryBuffer);
 					if (queryId > 0) {
 						_packetDest->command = RemoteCallCommands::QueryResponseId;
 						_packetDest->content = new char[2];
@@ -286,7 +291,7 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 					}
 
 					delete[] responsePacket->content;
-					delete[] responsePacket;
+					delete responsePacket;
 					break;
 				}
 				case RemoteCallError::ErrorVersion: {
@@ -310,7 +315,7 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 
 					delete[] tempPacket;
 					delete[] responsePacket->content;
-					delete[] responsePacket;
+					delete responsePacket;
 					break;
 				}
 				default: {
@@ -336,6 +341,8 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 
 int RemoteCall::_addQuery(char *_query) {
 	int queryId = 0;
+
+	this->queryStackMutex.lock();
 	for (int i = 1; i <= 10000; i++) {
 		try {
 			this->queryStack.at(i);
@@ -346,12 +353,13 @@ int RemoteCall::_addQuery(char *_query) {
 			break;
 		}
 	}
+	this->queryStackMutex.unlock();
 
 	return queryId;
 }
 std::string RemoteCall::_buildQuerySQF(int _bufferSize) {
 	size_t bufferSize = _bufferSize - 64; // remote overhead from buffer
-	std::string ret = "[0,1,\"\"]";
+	std::string ret = "[]";
 
 	if (this->tempQuery.size() > 0) {
 		SQF sqfQuery;
@@ -381,7 +389,7 @@ void RemoteCall::_log(const char *_message) {
 #ifdef LOGCOUT
 	std::cout << _message << std::endl;
 #else
-	std::ofstream logFile("rc.log");
+	std::ofstream logFile("rc.log", std::ios::out |std::ios::app);
 	logFile << _message << std::endl;
 	logFile.close();
 #endif
@@ -393,13 +401,16 @@ void RemoteCall::initServer() {
 	this->socketThread.detach();
 }
 
-std::string RemoteCall::getStackItem() {
+std::string RemoteCall::getStackItem(int _outputBuffer) {
 	std::string returnString = "[]";
 
 	if (this->tempQuery.size() > 0) {
-		returnString = this->_buildQuerySQF(REMOTECALL_OUTPUTBUFFER);
+		returnString = this->_buildQuerySQF(_outputBuffer - 16);
 	}
 	else if (this->queryStack.size() > 0) {
+		// Lock queryStack
+		this->queryStackMutex.lock();
+
 		// Get first query item
 		std::map<int, std::string>::iterator queryItem;
 		queryItem = this->queryStack.begin();
@@ -410,6 +421,9 @@ std::string RemoteCall::getStackItem() {
 
 		// Delete item from stack
 		this->queryStack.erase(queryItem);
+
+		// Unlock queryStack
+		this->queryStackMutex.unlock();
 
 		// replace Quote with double quote
 		std::stringstream queryStream;
@@ -422,7 +436,7 @@ std::string RemoteCall::getStackItem() {
 		this->tempQueryId = queryId;
 		this->tempQuery = queryStream.str();
 
-		returnString = this->_buildQuerySQF(REMOTECALL_OUTPUTBUFFER);
+		returnString = this->_buildQuerySQF(_outputBuffer - 16);
 	}
 
 	return returnString;

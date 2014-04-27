@@ -90,7 +90,7 @@ void __stdcall RVExtension(char *output, int outputSize, const char *function) {
 		strncpy(output, "diag_log 'remote_call startup';", outputSize);
 	}
 	else if (strcmp(function, "WorkerStack") == 0) {
-		std::string sqf = rCall.getStackItem();
+		std::string sqf = rCall.getStackItem(outputSize);
 		strncpy_s(output, outputSize, sqf.c_str(), _TRUNCATE);
 	}
 	else if (strcmp(function, "WorkerStackCount") == 0) {
