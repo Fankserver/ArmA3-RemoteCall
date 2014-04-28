@@ -8,7 +8,7 @@ RemoteCall::RemoteCall() {
 }
 
 RemoteCall::~RemoteCall() {
-	
+	this->tempQuery.reset();
 }
 
 // private
@@ -341,21 +341,26 @@ int RemoteCall::_addQuery(const char *_query) {
 
 	this->queryStackMutex.lock();
 
-	// Get current queryIds
-	std::vector<int> queryIds;
-	for (std::vector<std::shared_ptr<queryS>>::iterator it = this->queryStack.begin(); it != this->queryStack.end(); it++) {
-		queryIds.push_back((*it)->id);
-	}
-	std::sort(queryIds.begin(), queryIds.end());
-
-	// Get lowest queryId
-	int i = 1;
-	for (std::vector<int>::iterator it = queryIds.begin(); it != queryIds.end(); it++) {
-		if (*it != i) {
-			queryId = i;
-			break;
+	if (this->queryStack.size() > 0) {
+		// Get current queryIds
+		std::vector<int> queryIds;
+		for (std::vector<std::shared_ptr<queryS>>::iterator it = this->queryStack.begin(); it != this->queryStack.end(); it++) {
+			queryIds.push_back((*it)->id);
 		}
-		i++;
+		std::sort(queryIds.begin(), queryIds.end());
+
+		// Get lowest queryId
+		int i = 1;
+		for (std::vector<int>::iterator it = queryIds.begin(); it != queryIds.end(); it++) {
+			if (*it != i) {
+				queryId = i;
+				break;
+			}
+			i++;
+		}
+	}
+	else {
+		queryId = 1;
 	}
 
 	// Add query to stack
@@ -372,7 +377,7 @@ std::string RemoteCall::_buildQuerySQF(int _bufferSize) {
 	size_t bufferSize = _bufferSize - 16; // remote overhead from buffer
 	std::string ret = "[]";
 
-	if (this->tempQuery != NULL) {
+	if (this->tempQuery) {
 		SQF sqfQuery;
 		sqfQuery.push(this->tempQuery->id);
 
@@ -382,7 +387,7 @@ std::string RemoteCall::_buildQuerySQF(int _bufferSize) {
 			sqfQuery.push(this->tempQuery->content.c_str());
 
 			// finish
-			delete this->tempQuery.get();
+			this->tempQuery.reset();
 		}
 		else {
 			sqfQuery.push(0);
@@ -414,7 +419,7 @@ void RemoteCall::initServer() {
 std::string RemoteCall::getStackItem(int _outputBuffer) {
 	std::string returnString = "[]";
 
-	if (this->tempQuery != NULL) {
+	if (this->tempQuery) {
 		returnString = this->_buildQuerySQF(_outputBuffer);
 	}
 	else if (this->queryStack.size() > 0) {
@@ -424,7 +429,7 @@ std::string RemoteCall::getStackItem(int _outputBuffer) {
 		// Get first query item
 		std::vector<std::shared_ptr<queryS>>::iterator queryItem;
 		this->tempQuery = *this->queryStack.begin();
-		this->queryStack.erase(queryItem);
+		this->queryStack.erase(this->queryStack.begin());
 
 		// Unlock queryStack
 		this->queryStackMutex.unlock();
