@@ -81,27 +81,30 @@ private:
 		unsigned char command;
 		char *content;
 	};
+	struct queryS {
+		int id;
+		std::string content;
+	};
 
 private:
 	serverS server;
 	std::thread socketThread;
 
-	std::map<int, std::string> queryStack;
+	std::vector<std::shared_ptr<queryS>> queryStack;
 	std::mutex queryStackMutex;
 
-	int tempQueryId;
-	std::string tempQuery;
+	std::shared_ptr<queryS> tempQuery;
 
 	// Packet management
 	void _createPacket(packetS *Packet);
-	bool _unpackPacket(char *Receive, int ReceiveLength, packetS *Packet);
+	bool _unpackPacket(const char *Receive, int ReceiveLength, packetS *Packet);
 	int _validatePacket(packetS *Packet);
 	void _processPacket(clientS *Client, packetS *Packet, packetS *PacketDest, int *PacketDestLength);
 
 	void _initServerSocket();
 	void _initClientSocket(SOCKET Socket);
 
-	int _addQuery(char *Query);
+	int _addQuery(const char *Query);
 	std::string _buildQuerySQF(int _bufferSize);
 
 	void _log(const char *Message);

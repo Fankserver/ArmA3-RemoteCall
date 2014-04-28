@@ -5,13 +5,10 @@ RemoteCall::RemoteCall() {
 	this->server.password = "0123456789";
 
 	this->server.port = 3310;
-
-	this->tempQueryId = 0;
-	this->tempQuery = "";
 }
 
 RemoteCall::~RemoteCall() {
-
+	
 }
 
 // private
@@ -23,7 +20,7 @@ void RemoteCall::_createPacket(packetS *_packet) {
 	_packet->command = 0x00;
 	_packet->content = NULL;
 }
-bool RemoteCall::_unpackPacket(char *_receive, int _receiveLength, packetS *_packet) {
+bool RemoteCall::_unpackPacket(const char *_receive, int _receiveLength, packetS *_packet) {
 	// long enought to be a packet
 	if (_receiveLength >= REMOTECALL_PACKETSIZE) {
 		// Is new packet
@@ -339,45 +336,58 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 }
 #endif
 
-int RemoteCall::_addQuery(char *_query) {
+int RemoteCall::_addQuery(const char *_query) {
 	int queryId = 0;
 
 	this->queryStackMutex.lock();
-	for (int i = 1; i <= 10000; i++) {
-		try {
-			this->queryStack.at(i);
-		}
-		catch (...) {
+
+	// Get current queryIds
+	std::vector<int> queryIds;
+	for (std::vector<std::shared_ptr<queryS>>::iterator it = this->queryStack.begin(); it != this->queryStack.end(); it++) {
+		queryIds.push_back((*it)->id);
+	}
+	std::sort(queryIds.begin(), queryIds.end());
+
+	// Get lowest queryId
+	int i = 1;
+	for (std::vector<int>::iterator it = queryIds.begin(); it != queryIds.end(); it++) {
+		if (*it != i) {
 			queryId = i;
-			this->queryStack.insert(std::pair<int, std::string>(queryId, _query));
 			break;
 		}
+		i++;
 	}
+
+	// Add query to stack
+	std::shared_ptr<queryS> newQuery(new queryS);
+	newQuery->id = queryId;
+	newQuery->content = _query;
+	this->queryStack.push_back(newQuery);
+	
 	this->queryStackMutex.unlock();
 
 	return queryId;
 }
 std::string RemoteCall::_buildQuerySQF(int _bufferSize) {
-	size_t bufferSize = _bufferSize - 64; // remote overhead from buffer
+	size_t bufferSize = _bufferSize - 16; // remote overhead from buffer
 	std::string ret = "[]";
 
-	if (this->tempQuery.size() > 0) {
+	if (this->tempQuery != NULL) {
 		SQF sqfQuery;
-		sqfQuery.push(this->tempQueryId);
+		sqfQuery.push(this->tempQuery->id);
 
 		// tempQuery nosplit
-		if (this->tempQuery.size() <= bufferSize) {
+		if (this->tempQuery->content.size() <= bufferSize) {
 			sqfQuery.push(1);
-			sqfQuery.push(this->tempQuery.c_str());
+			sqfQuery.push(this->tempQuery->content.c_str());
 
 			// finish
-			this->tempQuery = "";
-			this->tempQueryId = 0;
+			delete this->tempQuery.get();
 		}
 		else {
 			sqfQuery.push(0);
-			sqfQuery.push(this->tempQuery.substr(0, bufferSize).c_str());
-			this->tempQuery.erase(0, bufferSize);
+			sqfQuery.push(this->tempQuery->content.substr(0, bufferSize).c_str());
+			this->tempQuery->content.erase(0, bufferSize);
 		}
 		ret = sqfQuery.toArray();
 	}
@@ -404,22 +414,16 @@ void RemoteCall::initServer() {
 std::string RemoteCall::getStackItem(int _outputBuffer) {
 	std::string returnString = "[]";
 
-	if (this->tempQuery.size() > 0) {
-		returnString = this->_buildQuerySQF(_outputBuffer - 16);
+	if (this->tempQuery != NULL) {
+		returnString = this->_buildQuerySQF(_outputBuffer);
 	}
 	else if (this->queryStack.size() > 0) {
 		// Lock queryStack
 		this->queryStackMutex.lock();
 
 		// Get first query item
-		std::map<int, std::string>::iterator queryItem;
-		queryItem = this->queryStack.begin();
-
-		// Copy values
-		int queryId = queryItem->first;
-		std::string query = queryItem->second;
-
-		// Delete item from stack
+		std::vector<std::shared_ptr<queryS>>::iterator queryItem;
+		this->tempQuery = *this->queryStack.begin();
 		this->queryStack.erase(queryItem);
 
 		// Unlock queryStack
@@ -427,16 +431,15 @@ std::string RemoteCall::getStackItem(int _outputBuffer) {
 
 		// replace Quote with double quote
 		std::stringstream queryStream;
-		for (size_t i = 0; i <= query.length(); i++) {
-			queryStream << query[i];
-			if (query[i] == '"') {
+		for (size_t i = 0; i <= this->tempQuery->content.length(); i++) {
+			queryStream << this->tempQuery->content[i];
+			if (this->tempQuery->content[i] == '"') {
 				queryStream << '"';
 			}
 		}
-		this->tempQueryId = queryId;
-		this->tempQuery = queryStream.str();
+		this->tempQuery->content = queryStream.str();
 
-		returnString = this->_buildQuerySQF(_outputBuffer - 16);
+		returnString = this->_buildQuerySQF(_outputBuffer);
 	}
 
 	return returnString;
