@@ -266,7 +266,7 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 
 	// Receive until the peer shuts down the connection
 	do {
-		iResult = recv(_socket, recvbuf, recvBufLen, MSG_PARTIAL);
+		iResult = recv(_socket, recvbuf, recvBufLen, NULL);
 		if (iResult > 0) {
 			packetS packet;
 			memset(&packet, 0, sizeof(packetS));
@@ -284,6 +284,14 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 						char *tempPacket = new char[responsePacketLength];
 						memcpy(tempPacket, responsePacket, responsePacketLength);
 						strncpy(tempPacket + REMOTECALL_PACKETSIZE, responsePacket->content, responsePacketLength - REMOTECALL_PACKETSIZE);
+
+						std::cout.setf(std::ios::hex, std::ios::basefield);
+						std::cout << "packPacket" << std::endl;
+						std::cout << "- identfier: " << responsePacket->identfier[0] << responsePacket->identfier[1] << std::endl;
+						std::cout << "- version: " << (int)responsePacket->version << std::endl;
+						std::cout << "- identfier: " << (int)responsePacket->spacer << std::endl;
+						std::cout << "- command: " << (int)responsePacket->command << std::endl;
+						std::cout << "- content: " << (int)responsePacket->content[0] << std::endl;
 
 						int iSendResult = send(_socket, tempPacket, responsePacketLength, 0);
 						if (iSendResult == SOCKET_ERROR) {
