@@ -15,7 +15,7 @@ void main(void) {
 	rc.initServer();
 	while (true) {
 		std::thread asd(work);
-		asd.detach();
+		asd.join();
 	}
 
 	getchar();

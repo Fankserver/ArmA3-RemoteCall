@@ -105,7 +105,7 @@ private:
 	void _initServerSocket();
 	void _initClientSocket(SOCKET Socket);
 
-	int _addQuery(std::string Query);
+	int _addQuery(const char *Query, size_t QuerySize);
 	std::string _buildQuerySQF(int _bufferSize);
 
 	void _log(const char *Message);

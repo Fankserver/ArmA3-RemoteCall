@@ -133,7 +133,7 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 				strncat(_client->queryBuffer, _packet->content, packetContentLength);
 
 				if (strlen(_client->queryBuffer) == (_client->queryBufferLength - 1)) {
-					short int queryId = this->_addQuery(_client->queryBuffer);
+					short int queryId = this->_addQuery(_client->queryBuffer, _client->queryBufferLength);
 					if (queryId > 0) {
 						_packetDest->command = RemoteCallCommands::QueryResponseId;
 						_packetDest->content = new char[2];
@@ -335,7 +335,7 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 }
 #endif
 
-int RemoteCall::_addQuery(std::string _query) {
+int RemoteCall::_addQuery(const char *_query, size_t _querySize) {
 	int queryId = 0;
 
 	this->queryStackMutex.lock();
@@ -365,7 +365,7 @@ int RemoteCall::_addQuery(std::string _query) {
 	// Add query to stack
 	std::shared_ptr<queryS> newQuery(new queryS);
 	newQuery->id = queryId;
-	newQuery->content = _query;
+	newQuery->content.assign(_query, _querySize);
 	this->queryStack.push_back(newQuery);
 	
 	this->queryStackMutex.unlock();
