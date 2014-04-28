@@ -45,12 +45,6 @@ bool RemoteCall::_unpackPacket(const char *_receive, int _receiveLength, packetS
 				_packet->content = new char[1];
 				strcpy(_packet->content, "");
 			}
-
-			std::cout << "unpackPacket" << std::endl;
-			std::cout << "- identfier: " << _packet->identfier[0] << _packet->identfier[1] << std::endl;
-			std::cout << "- version: " << (int)_packet->version << std::endl;
-			std::cout << "- identfier: " << (int)_packet->spacer << std::endl;
-			std::cout << "- command: " << (int)_packet->command << std::endl;
 		}
 	}
 	else {
@@ -282,13 +276,6 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 						char *tempPacket = new char[responsePacketLength];
 						memcpy(tempPacket, responsePacket, responsePacketLength);
 						strncpy(tempPacket + REMOTECALL_PACKETSIZE, responsePacket->content, responsePacketLength - REMOTECALL_PACKETSIZE);
-
-						std::cout << "packPacket" << std::endl;
-						std::cout << "- identfier: " << responsePacket->identfier[0] << responsePacket->identfier[1] << std::endl;
-						std::cout << "- version: " << (int)responsePacket->version << std::endl;
-						std::cout << "- identfier: " << (int)responsePacket->spacer << std::endl;
-						std::cout << "- command: " << (int)responsePacket->command << std::endl;
-						std::cout << "- content: " << (int)responsePacket->content[0] << std::endl;
 
 						int iSendResult = send(_socket, tempPacket, responsePacketLength, 0);
 						if (iSendResult == SOCKET_ERROR) {
