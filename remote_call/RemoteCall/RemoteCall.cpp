@@ -353,11 +353,11 @@ int RemoteCall::_addQuery(const char *_query) {
 		int i = 1;
 		for (std::vector<int>::iterator it = queryIds.begin(); it != queryIds.end(); it++) {
 			if (*it != i) {
-				queryId = i;
 				break;
 			}
 			i++;
 		}
+		queryId = i;
 	}
 	else {
 		queryId = 1;
