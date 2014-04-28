@@ -327,11 +327,6 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 	} while (iResult > 0);
 
 	delete[] recvbuf;
-
-	//TODO: heap corruption detected after normal block
-	//if (client.queryBuffer != NULL) {
-	//	delete[] client.queryBuffer;
-	//}
 }
 #endif
 
