@@ -45,6 +45,12 @@ bool RemoteCall::_unpackPacket(const char *_receive, int _receiveLength, packetS
 				_packet->content = new char[1];
 				strcpy(_packet->content, "");
 			}
+
+			std::cout << "unpackPacket" << std::endl;
+			std::cout << "- identfier: " << _packet->identfier[0] << _packet->identfier[1] << std::endl;
+			std::cout << "- version: " << (int)_packet->version << std::endl;
+			std::cout << "- identfier: " << (int)_packet->spacer << std::endl;
+			std::cout << "- command: " << (int)_packet->command << std::endl;
 		}
 	}
 	else {
@@ -141,6 +147,7 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 						_packetDest->content = new char[2];
 						*_packetDestLength = REMOTECALL_PACKETSIZE + 2;
 						memcpy(_packetDest->content, &queryId, 2);
+						std::cout << queryId << std::endl;
 					}
 					else {
 						// Query full
@@ -339,6 +346,8 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 int RemoteCall::_addQuery(const char *_query) {
 	int queryId = 0;
 
+	std::cout << queryId << std::endl;
+
 	this->queryStackMutex.lock();
 
 	if (this->queryStack.size() > 0) {
@@ -370,6 +379,8 @@ int RemoteCall::_addQuery(const char *_query) {
 	this->queryStack.push_back(newQuery);
 	
 	this->queryStackMutex.unlock();
+
+	std::cout << queryId << std::endl;
 
 	return queryId;
 }
