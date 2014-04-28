@@ -3,16 +3,19 @@
 
 RemoteCall rc;
 
+void work() {
+	std::string stackItem = rc.getStackItem(4096);
+	if (stackItem.size() > 2) {
+		std::cout << "stackdone" << std::endl;
+		//std::cout << stackItem << std::endl;
+	}
+}
+
 void main(void) {
 	rc.initServer();
 	while (true) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	
-		std::string stackItem = rc.getStackItem(4096);
-		if (stackItem.size() > 2) {
-			std::cout << "stackdone" << std::endl;
-			//std::cout << stackItem << std::endl;
-		}
+		std::thread asd(work);
+		asd.detach();
 	}
 
 	getchar();

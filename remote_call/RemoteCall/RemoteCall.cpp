@@ -115,9 +115,6 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 						char *queryBuffer = (char*)malloc(_client->queryBufferLength);
 						memset(queryBuffer, 0, _client->queryBufferLength);
 						if (queryBuffer == NULL) exit(1);
-						if (_client->queryBuffer != NULL) {
-							free(_client->queryBuffer);
-						}
 						_client->queryBuffer = queryBuffer;
 
 						// wrong query length
@@ -138,7 +135,8 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 		// Query content
 		else if (_packet->command == RemoteCallCommands::QueryContent) {
 			if (_client->isQueryBuffer) {
-				strcat(_client->queryBuffer, _packet->content);
+				size_t packetContentLength = (sizeof(char)* (strlen(_packet->content) + strlen(_client->queryBuffer)) >= _client->queryBufferLength ? ((_client->queryBufferLength - (sizeof(char)* strlen(_client->queryBuffer))) - 1) : sizeof(char)* strlen(_packet->content));
+				strncat(_client->queryBuffer, _packet->content, packetContentLength);
 
 				if (strlen(_client->queryBuffer) == (_client->queryBufferLength - 1)) {
 					short int queryId = this->_addQuery(_client->queryBuffer);
@@ -147,7 +145,6 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 						_packetDest->content = new char[2];
 						*_packetDestLength = REMOTECALL_PACKETSIZE + 2;
 						memcpy(_packetDest->content, &queryId, 2);
-						std::cout << queryId << std::endl;
 					}
 					else {
 						// Query full
@@ -155,6 +152,7 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 
 					_client->isQueryBuffer = false;
 					_client->queryBufferLength = 0;
+					free(_client->queryBuffer);
 				}
 			}
 		}
@@ -285,7 +283,6 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 						memcpy(tempPacket, responsePacket, responsePacketLength);
 						strncpy(tempPacket + REMOTECALL_PACKETSIZE, responsePacket->content, responsePacketLength - REMOTECALL_PACKETSIZE);
 
-						std::cout.setf(std::ios::hex, std::ios::basefield);
 						std::cout << "packPacket" << std::endl;
 						std::cout << "- identfier: " << responsePacket->identfier[0] << responsePacket->identfier[1] << std::endl;
 						std::cout << "- version: " << (int)responsePacket->version << std::endl;
@@ -351,10 +348,8 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 }
 #endif
 
-int RemoteCall::_addQuery(const char *_query) {
+int RemoteCall::_addQuery(std::string _query) {
 	int queryId = 0;
-
-	std::cout << queryId << std::endl;
 
 	this->queryStackMutex.lock();
 
@@ -387,8 +382,6 @@ int RemoteCall::_addQuery(const char *_query) {
 	this->queryStack.push_back(newQuery);
 	
 	this->queryStackMutex.unlock();
-
-	std::cout << queryId << std::endl;
 
 	return queryId;
 }

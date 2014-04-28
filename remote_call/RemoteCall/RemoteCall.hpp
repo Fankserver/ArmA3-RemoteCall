@@ -30,7 +30,7 @@
 #endif
 
 #define REMOTECALL_VERSION 1
-#define REMOTECALL_SOCKBUFFER 512
+#define REMOTECALL_SOCKBUFFER 1024
 #define REMOTECALL_PACKETSIZE 5
 
 enum RemoteCallCommands {
@@ -105,7 +105,7 @@ private:
 	void _initServerSocket();
 	void _initClientSocket(SOCKET Socket);
 
-	int _addQuery(const char *Query);
+	int _addQuery(std::string Query);
 	std::string _buildQuerySQF(int _bufferSize);
 
 	void _log(const char *Message);
