@@ -1,5 +1,5 @@
 ArmA2 / ArmA3 mission example
----------------------
+-----------------------------
 
 This example shows how to use the remote_call in a mission file.
 

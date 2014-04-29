@@ -1,0 +1,1 @@
+[] call RC_fnc_init;
