@@ -6,9 +6,9 @@ ArmA3-RemoteCall allows server admins to execute arbitrary script code (*.sqf) w
 - Copyright 2014 Florian "Fank" Kinder, Niko "nano2k" Bochan
 - Licensed under Creative Commons Attribution-ShareAlike 4.0 International Public License (CC-BY-SA 4.0)
 
-## Installation
+## Usage
 
-- Copy the remote_call.dll in your ArmA root folder.
+- Copy the remote_call.dll in your ArmA addon folder (for example `@A3RemoteCall`).
 - Add the remote_call.fsm to your mission, and add the following lines to your initServer.sqf or init.sqf (this should be called server side only!):
 ```sqf
 _remoteCall = [] execFSM "remote_call.fsm";
