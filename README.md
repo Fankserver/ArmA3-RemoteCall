@@ -1,6 +1,8 @@
 ArmA3-RemoteCall ![CC-BY-SA 4.0](http://i.creativecommons.org/l/by-sa/3.0/88x31.png)
 ================
 
+ArmA3-RemoteCall allows server admins to execute arbitrary script code (*.sqf) without restarting the game server. The protocol is designed in such a way that it allows multiple concurrent clients. 
+
 - Copyright 2014 Florian "Fank" Kinder, Niko "nano2k" Bochan
 - Licensed under Creative Commons Attribution-ShareAlike 4.0 International Public License (CC-BY-SA 4.0)
 
