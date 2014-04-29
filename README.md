@@ -1,7 +1,7 @@
 ArmA3-RemoteCall ![CC-BY-SA 4.0](http://i.creativecommons.org/l/by-sa/3.0/88x31.png)
 ================
 
-- Copyright 2014 nano2k, Fank
+- Copyright 2014 Florian "Fank" Kinder, Niko "nano2k" Bochan
 - Licensed under Creative Commons Attribution-ShareAlike 4.0 International Public License (CC-BY-SA 4.0)
 
 
@@ -44,3 +44,8 @@ Packet types
 
 8. Query Result Response (Server -> Client):
 `HEADER + | 0x14 | 2 byte query id | content`
+
+Supported Client Libraries
+--------------------------
+
+- Go [go-remotecall](https://github.com/nano2k/go-remotecall)
