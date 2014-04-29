@@ -1,17 +1,23 @@
 ArmA3-RemoteCall ![CC-BY-SA 4.0](http://i.creativecommons.org/l/by-sa/3.0/88x31.png)
 ================
 
-ArmA3-RemoteCall allows server admins to execute arbitrary script code (*.sqf) without restarting the game server. The protocol is designed in such a way that it allows multiple concurrent clients. 
+ArmA3-RemoteCall allows server admins to execute arbitrary script code (*.sqf) without restarting the game server. The protocol is designed in such a way that it allows multiple concurrent clients.
 
 - Copyright 2014 Florian "Fank" Kinder, Niko "nano2k" Bochan
 - Licensed under Creative Commons Attribution-ShareAlike 4.0 International Public License (CC-BY-SA 4.0)
 
+## Installation
 
-# Protocol specification
+- Copy the remote_call.dll in your ArmA root folder.
+- Add the remote_call.fsm to your mission, and add the following lines to your initServer.sqf or init.sqf (this should be called server side only!):
+```sqf
+_remoteCall = [] execFSM "remote_call.fsm";
+```
+
+## Protocol specification
 Version 1
 
-General Information
---------------------------
+### General Information
 
 - TCP/IP
 - Port: adjustable in config file
@@ -19,8 +25,8 @@ General Information
 - Client is the Remote-Client
 
 
-Packet types
---------------------------
+### Packet types
+
 
 **Header:**
 
@@ -47,7 +53,6 @@ Packet types
 8. Query Result Response (Server -> Client):
 `HEADER + | 0x14 | 2 byte query id | content`
 
-Supported Client Libraries
---------------------------
+## Supported Client Libraries
 
 - Go [go-remotecall](https://github.com/nano2k/go-remotecall)
