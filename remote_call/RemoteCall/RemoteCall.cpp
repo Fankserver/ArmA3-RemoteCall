@@ -1,10 +1,27 @@
 #include "RemoteCall.hpp"
 
 RemoteCall::RemoteCall() {
-	this->server.password = new char[10];
-	this->server.password = "0123456789";
+	char configFile[] = "remote_call.cfg";
+	config4cpp::Configuration *configuration = config4cpp::Configuration::create();
 
-	this->server.port = 3310;
+	try {
+		configuration->parse(configFile);
+	}
+	catch (const config4cpp::ConfigurationException & exProfile) {
+		this->_log(exProfile.c_str());
+		exit(1);
+	}
+
+	try {
+		this->server.port = configuration->lookupInt("", "port", 3310);
+		this->server.password = configuration->lookupString("", "password");
+	}
+	catch (const config4cpp::ConfigurationException & ex) {
+		this->_log(ex.c_str());
+		exit(1);
+	}
+
+	std::cout << "Server startup on port " << this->server.port << std::endl;
 }
 
 RemoteCall::~RemoteCall() {
@@ -200,7 +217,7 @@ void RemoteCall::_initServerSocket() {
 
 	// Resolve the server address and port
 	char serverPort[5];
-	itoa(3310, serverPort, 10);
+	itoa(this->server.port, serverPort, 10);
 	iResult = getaddrinfo(NULL, serverPort, &hints, &result);
 	if (iResult != 0) {
 		std::stringstream errorMsg;

@@ -18,6 +18,8 @@
 #pragma comment (lib, "Ws2_32.lib") // Need to link with Ws2_32.lib
 #endif
 
+#include <config4cpp\Configuration.h>
+
 #include "SQF.hpp"
 
 #ifndef REMOTECALL_H
@@ -67,7 +69,7 @@ class RemoteCall {
 private:
 	struct serverS {
 		int port;
-		char *password;
+		const char *password;
 	};
 	struct clientS {
 		bool loggedIn;
