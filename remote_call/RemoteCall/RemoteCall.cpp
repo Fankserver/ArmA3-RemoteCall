@@ -1,7 +1,7 @@
 #include "RemoteCall.hpp"
 
 RemoteCall::RemoteCall() {
-	char configFile[] = "remote_call.cfg";
+	char configFile[] = "C:\\remote_call.cfg";
 	config4cpp::Configuration *configuration = config4cpp::Configuration::create();
 
 	try {
@@ -14,12 +14,14 @@ RemoteCall::RemoteCall() {
 
 	try {
 		this->server.port = configuration->lookupInt("", "port", 3310);
-		this->server.password = configuration->lookupString("", "password");
+		this->server.password.assign(configuration->lookupString("", "password"));
 	}
 	catch (const config4cpp::ConfigurationException & ex) {
 		this->_log(ex.c_str());
 		exit(1);
 	}
+
+	configuration->destroy();
 
 	std::cout << "Server startup on port " << this->server.port << std::endl;
 }
@@ -71,6 +73,7 @@ bool RemoteCall::_unpackPacket(const char *_receive, int _receiveLength, packetS
 	return true;
 }
 int RemoteCall::_validatePacket(packetS *_packet) {
+	this->_log("00106");
 	// Valid RemoteCall packet
 	if (
 		_packet->identfier[0] == 'R' && _packet->identfier[1] == 'C'
@@ -78,8 +81,10 @@ int RemoteCall::_validatePacket(packetS *_packet) {
 		&& (int)_packet->spacer == 0xFF
 		&& (int)_packet->command >= 0
 	) {
+		this->_log("00100");
 		// Wrong version
 		if (_packet->version != REMOTECALL_VERSION) {
+			this->_log("00101");
 			return RemoteCallError::ErrorVersion;
 		}
 
@@ -89,16 +94,20 @@ int RemoteCall::_validatePacket(packetS *_packet) {
 			|| _packet->command == RemoteCallCommands::QueryContentLength
 			|| _packet->command == RemoteCallCommands::QueryContent
 		) {
+			this->_log("00102");
 			return RemoteCallError::OK;
 		}
 		else {
+			this->_log("00103");
 			return RemoteCallError::ErrorCommand;
 		}
 	}
 	else {
+		this->_log("00104");
 		return RemoteCallError::ErrorProtocol;
 	}
 
+	this->_log("00105");
 	return RemoteCallError::ErrorUnhandled;
 }
 void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_packetDest, int *_packetDestLength) {
@@ -125,7 +134,10 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 						_client->queryBufferLength = sizeof(char) + queryLength;
 						char *queryBuffer = (char*)malloc(_client->queryBufferLength);
 						memset(queryBuffer, 0, _client->queryBufferLength);
-						if (queryBuffer == NULL) exit(1);
+						if (queryBuffer == NULL) {
+							this->_log("Alloc failed");
+							exit(1);
+						}
 						_client->queryBuffer = queryBuffer;
 
 						// wrong query length
@@ -175,7 +187,7 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 		_packetDest->content = new char[1];
 		*_packetDestLength = REMOTECALL_PACKETSIZE + 1;
 		if (_packet->command == RemoteCallCommands::HandshakePassword) {
-			if (strcmp(_packet->content, this->server.password) == 0) {
+			if (this->server.password.compare(_packet->content) == 0) {
 				_client->loggedIn = true;
 
 				_packetDest->content[0] = RemoteCallHandshake::PASSWORD_CORRECT;
@@ -253,14 +265,16 @@ void RemoteCall::_initServerSocket() {
 	freeaddrinfo(result);
 
 	listen(serverSocket, 10);
-	while (1) {
+	while (true) {
 		SOCKET clientSocket = SOCKET_ERROR;
 
-		while (clientSocket == SOCKET_ERROR) {
-			clientSocket = accept(serverSocket, NULL, NULL);
+		if ((clientSocket = accept(serverSocket, NULL, NULL)) != SOCKET_ERROR) {
+			std::thread client(std::bind(&RemoteCall::_initClientSocket, this, clientSocket));
+			client.detach();
 		}
+		else {
 
-		std::thread(std::bind(&RemoteCall::_initClientSocket, this, clientSocket)).detach();
+		}
 	}
 }
 void RemoteCall::_initClientSocket(SOCKET _socket) {
@@ -275,36 +289,54 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 
 	// Receive until the peer shuts down the connection
 	do {
+		this->_log("00001");
 		iResult = recv(_socket, recvbuf, recvBufLen, NULL);
 		if (iResult > 0) {
 			packetS packet;
 			memset(&packet, 0, sizeof(packetS));
+			this->_log("00002");
 			this->_unpackPacket(recvbuf, iResult, &packet);
+			this->_log("00003");
 
 			int packetError = this->_validatePacket(&packet);
+			this->_log("00004");
 			switch (packetError) {
 				case RemoteCallError::OK: {
+					this->_log("00005");
 					int responsePacketLength = 0;
 					packetS *responsePacket = new packetS;
+					this->_log("00006");
 					this->_createPacket(responsePacket);
+					this->_log("00007");
 					this->_processPacket(&client, &packet, responsePacket, &responsePacketLength);
+					this->_log("00008");
 
 					if (responsePacket->command != 0) {
+						this->_log("00009");
 						char *tempPacket = new char[responsePacketLength];
+						this->_log("00010");
 						memcpy(tempPacket, responsePacket, responsePacketLength);
+						this->_log("00011");
 						strncpy(tempPacket + REMOTECALL_PACKETSIZE, responsePacket->content, responsePacketLength - REMOTECALL_PACKETSIZE);
-
+						this->_log("00012");
 						int iSendResult = send(_socket, tempPacket, responsePacketLength, 0);
+						this->_log("00013");
 						if (iSendResult == SOCKET_ERROR) {
+							this->_log("SEND FAILED");
 							closesocket(_socket);
 							iResult = 0;
 						}
 
+						this->_log("00014");
 						delete[] tempPacket;
+						this->_log("00015");
 					}
 
+					this->_log("00016");
 					delete[] responsePacket->content;
+					this->_log("00017");
 					delete responsePacket;
+					this->_log("00018");
 					break;
 				}
 				case RemoteCallError::ErrorVersion: {
@@ -322,6 +354,7 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 
 					int iSendResult = send(_socket, tempPacket, responsePacketLength, 0);
 					if (iSendResult == SOCKET_ERROR) {
+						this->_log("SEND FAILED");
 						closesocket(_socket);
 						iResult = 0;
 					}
@@ -339,9 +372,12 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 			}
 		}
 		else  {
+			this->_log("00019");
 			closesocket(_socket);
 		}
 	} while (iResult > 0);
+
+	this->_log("CLOSED");
 
 	delete[] recvbuf;
 }

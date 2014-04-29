@@ -69,7 +69,7 @@ class RemoteCall {
 private:
 	struct serverS {
 		int port;
-		const char *password;
+		std::string password;
 	};
 	struct clientS {
 		bool loggedIn;
