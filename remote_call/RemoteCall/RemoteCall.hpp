@@ -2,13 +2,9 @@
 #include <thread>
 #include <iostream>
 #include <fstream>
-#include <map>
 #include <memory>
 #include <mutex>
-#include <algorithm>
-#include <iomanip>
-#include <stdlib.h>
-#include <stdio.h>
+#include <regex>
 
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -17,8 +13,6 @@
 #include <ws2tcpip.h>
 #pragma comment (lib, "Ws2_32.lib") // Need to link with Ws2_32.lib
 #endif
-
-#include <config4cpp\Configuration.h>
 
 #include "SQF.hpp"
 
@@ -111,6 +105,7 @@ private:
 	std::string _buildQuerySQF(int _bufferSize);
 
 	void _log(const char *Message);
+	void _readConfig();
 
 public:
 	RemoteCall();

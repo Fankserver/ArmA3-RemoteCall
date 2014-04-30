@@ -1,28 +1,7 @@
 #include "RemoteCall.hpp"
 
 RemoteCall::RemoteCall() {
-	char configFile[] = "C:\\remote_call.cfg";
-	config4cpp::Configuration *configuration = config4cpp::Configuration::create();
-
-	try {
-		configuration->parse(configFile);
-	}
-	catch (const config4cpp::ConfigurationException & exProfile) {
-		this->_log(exProfile.c_str());
-		exit(1);
-	}
-
-	try {
-		this->server.port = configuration->lookupInt("", "port", 3310);
-		this->server.password.assign(configuration->lookupString("", "password"));
-	}
-	catch (const config4cpp::ConfigurationException & ex) {
-		this->_log(ex.c_str());
-		exit(1);
-	}
-
-	configuration->destroy();
-
+	this->_readConfig();
 	std::cout << "Server startup on port " << this->server.port << std::endl;
 }
 
@@ -448,13 +427,51 @@ std::string RemoteCall::_buildQuerySQF(int _bufferSize) {
 }
 
 void RemoteCall::_log(const char *_message) {
-#ifdef LOGCOUT
-	std::cout << _message << std::endl;
-#else
+#ifdef _USRDLL
 	std::ofstream logFile("rc.log", std::ios::out |std::ios::app);
 	logFile << _message << std::endl;
 	logFile.close();
+#else
+	std::cout << _message << std::endl;
 #endif
+}
+
+void RemoteCall::_readConfig() {
+	// Prepare RegEx
+	std::regex regExConfigEntry("^(\\w+)[ \\t]*=[ \\t]*\"(.*)\";$");
+
+	// Set default values
+	this->server.port = 3310;
+
+	// Read config file
+	std::ifstream configFile("C:\\remote_call.cfg");
+	if (configFile.is_open()) {
+		std::string configLine;
+
+		while (std::getline(configFile, configLine)) {
+			std::smatch regExMatch;
+			std::regex_match(configLine, regExMatch, regExConfigEntry);
+			if (regExMatch.size() > 0) {
+				if (regExMatch[1].compare("port") == 0) {
+					this->server.port = atoi(regExMatch[2].str().c_str());
+				}
+				else if (regExMatch[1].compare("password") == 0) {
+					this->server.password = regExMatch[2].str();
+				}
+			}
+			else {
+				std::stringstream logEntry;
+				logEntry << "Config line missmatch: " << configLine;
+				this->_log(logEntry.str().c_str());
+			}
+		}
+
+		configFile.close();
+	}
+
+	if (this->server.password.compare("") == 0) {
+		exit(1);
+	}
 }
 
 // public
