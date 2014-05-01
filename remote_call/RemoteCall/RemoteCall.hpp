@@ -63,6 +63,7 @@ class RemoteCall {
 private:
 	struct serverS {
 		int port;
+		std::string ip;
 		std::string password;
 	};
 	struct clientS {

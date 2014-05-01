@@ -424,7 +424,10 @@ void RemoteCall::_readConfig() {
 			std::smatch regExMatch;
 			std::regex_match(configLine, regExMatch, regExConfigEntry);
 			if (regExMatch.size() > 0) {
-				if (regExMatch[1].compare("port") == 0) {
+				if (regExMatch[1].compare("ip") == 0) {
+					this->server.ip = regExMatch[2].str();
+				}
+				else if (regExMatch[1].compare("port") == 0) {
 					this->server.port = atoi(regExMatch[2].str().c_str());
 				}
 				else if (regExMatch[1].compare("password") == 0) {
