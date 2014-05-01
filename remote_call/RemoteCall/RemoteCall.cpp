@@ -451,6 +451,7 @@ void RemoteCall::_readConfig() {
 
 // public
 void RemoteCall::initServer() {
+	// Init server socket thread & detach it
 	this->socketThread = std::thread(std::bind(&RemoteCall::_initServerSocket, this));
 	this->socketThread.detach();
 }
