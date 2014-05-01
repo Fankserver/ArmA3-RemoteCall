@@ -21,43 +21,50 @@ void RemoteCall::_createPacket(packetS *_packet) {
 bool RemoteCall::_unpackPacket(const char *_receive, int _receiveLength, packetS *_packet) {
 	// long enought to be a packet
 	if (_receiveLength >= REMOTECALL_PACKETSIZE) {
-		// Is new packet
-		if (strcmp(_packet->identfier, "") == 0) {
-			// wrap the packet
-			memcpy(_packet, _receive, sizeof(packetS));
+		try {
+			// Is new packet
+			if (strcmp(_packet->identfier, "") == 0) {
+				// wrap the packet
+				memcpy(_packet, _receive, sizeof(packetS));
 
-			// contains content
-			if (_receiveLength >= 6) {
+				// contains content
+				if (_receiveLength >= 6) {
 
-				// Allocate new content
-				int contentLength = _receiveLength - REMOTECALL_PACKETSIZE;
-				_packet->content = new char[contentLength];
+					// Allocate new content
+					int contentLength = _receiveLength - REMOTECALL_PACKETSIZE;
+					_packet->content = new char[contentLength];
 
-				// copy content
-				memcpy(_packet->content, _receive + REMOTECALL_PACKETSIZE, contentLength);
-				_packet->content[contentLength] = '\0';
+					// copy content
+					memcpy(_packet->content, _receive + REMOTECALL_PACKETSIZE, contentLength);
+					_packet->content[contentLength] = '\0';
+				}
+
+				// command only
+				else {
+					_packet->content = new char[1];
+					strcpy(_packet->content, "");
+				}
+
+				return true;
 			}
-
-			// command only
-			else {
-				_packet->content = new char[1];
-				strcpy(_packet->content, "");
-			}
+		}
+		catch (...) {
+			this->_log("unpackPacket failed");
 		}
 	}
 	else {
 		return false;
 	}
 
-	return true;
+	return false;
 }
 int RemoteCall::_validatePacket(packetS *_packet) {
 	// Valid RemoteCall packet
 	if (
 		_packet->identfier[0] == 'R' && _packet->identfier[1] == 'C'
-		&& (int)_packet->version > 0
-		&& (int)_packet->spacer == 0xFF
-		&& (int)_packet->command >= 0
+		&& _packet->version > 0
+		&& _packet->spacer == 0xFF
+		&& _packet->command >= 0
 	) {
 		// Wrong version
 		if (_packet->version != REMOTECALL_VERSION) {
@@ -265,20 +272,46 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 		if (iResult > 0) {
 			packetS packet;
 			memset(&packet, 0, sizeof(packetS));
-			this->_unpackPacket(recvbuf, iResult, &packet);
+			if (this->_unpackPacket(recvbuf, iResult, &packet)) {
+				int packetError = this->_validatePacket(&packet);
+				switch (packetError) {
+					case RemoteCallError::OK: {
+						int responsePacketLength = 0;
+						packetS *responsePacket = new packetS;
+						this->_createPacket(responsePacket);
+						this->_processPacket(&client, &packet, responsePacket, &responsePacketLength);
 
-			int packetError = this->_validatePacket(&packet);
-			switch (packetError) {
-				case RemoteCallError::OK: {
-					int responsePacketLength = 0;
-					packetS *responsePacket = new packetS;
-					this->_createPacket(responsePacket);
-					this->_processPacket(&client, &packet, responsePacket, &responsePacketLength);
+						if (responsePacket->command != 0) {
+							char *tempPacket = new char[responsePacketLength];
+							memcpy(tempPacket, responsePacket, responsePacketLength);
+							strncpy(tempPacket + REMOTECALL_PACKETSIZE, responsePacket->content, responsePacketLength - REMOTECALL_PACKETSIZE);
+							int iSendResult = send(_socket, tempPacket, responsePacketLength, 0);
+							if (iSendResult == SOCKET_ERROR) {
+								this->_log("SEND FAILED");
+								closesocket(_socket);
+								iResult = 0;
+							}
 
-					if (responsePacket->command != 0) {
+							delete[] tempPacket;
+						}
+
+						delete[] responsePacket->content;
+						delete responsePacket;
+						break;
+					}
+					case RemoteCallError::ErrorVersion: {
+						int responsePacketLength = REMOTECALL_PACKETSIZE + 1;
+						packetS *responsePacket = new packetS;
+						this->_createPacket(responsePacket);
+
+						responsePacket->command = RemoteCallCommands::HandshakeResponse;
+						responsePacket->content = new char[1];
+						responsePacket->content[0] = RemoteCallError::ErrorVersion;
+
 						char *tempPacket = new char[responsePacketLength];
 						memcpy(tempPacket, responsePacket, responsePacketLength);
 						strncpy(tempPacket + REMOTECALL_PACKETSIZE, responsePacket->content, responsePacketLength - REMOTECALL_PACKETSIZE);
+
 						int iSendResult = send(_socket, tempPacket, responsePacketLength, 0);
 						if (iSendResult == SOCKET_ERROR) {
 							this->_log("SEND FAILED");
@@ -287,42 +320,22 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 						}
 
 						delete[] tempPacket;
+						delete[] responsePacket->content;
+						delete responsePacket;
+						break;
 					}
-
-					delete[] responsePacket->content;
-					delete responsePacket;
-					break;
-				}
-				case RemoteCallError::ErrorVersion: {
-					int responsePacketLength = REMOTECALL_PACKETSIZE + 1;
-					packetS *responsePacket = new packetS;
-					this->_createPacket(responsePacket);
-
-					responsePacket->command = RemoteCallCommands::HandshakeResponse;
-					responsePacket->content = new char[1];
-					responsePacket->content[0] = RemoteCallError::ErrorVersion;
-
-					char *tempPacket = new char[responsePacketLength];
-					memcpy(tempPacket, responsePacket, responsePacketLength);
-					strncpy(tempPacket + REMOTECALL_PACKETSIZE, responsePacket->content, responsePacketLength - REMOTECALL_PACKETSIZE);
-
-					int iSendResult = send(_socket, tempPacket, responsePacketLength, 0);
-					if (iSendResult == SOCKET_ERROR) {
-						this->_log("SEND FAILED");
+					default: {
+						// unexpected error
 						closesocket(_socket);
 						iResult = 0;
 					}
-
-					delete[] tempPacket;
-					delete[] responsePacket->content;
-					delete responsePacket;
-					break;
 				}
-				default: {
-					// unexpected error
-					closesocket(_socket);
-					iResult = 0;
-				}
+			}
+			// Packet could not be unpacked
+			else {
+				this->_log("error unpacking");
+				closesocket(_socket);
+				iResult = 0;
 			}
 		}
 		else  {

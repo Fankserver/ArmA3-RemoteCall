@@ -14,16 +14,16 @@
 #pragma comment (lib, "Ws2_32.lib") // Need to link with Ws2_32.lib
 #endif
 
-#include "SQF.hpp"
-
-#ifndef REMOTECALL_H
-#define REMOTECALL_H
-
 // compat
 #ifdef _MSC_VER
 #define snprintf _snprintf
 #define itoa _itoa
 #endif
+
+#include "SQF.hpp"
+
+#ifndef REMOTECALL_H
+#define REMOTECALL_H
 
 #define REMOTECALL_VERSION 1
 #define REMOTECALL_SOCKBUFFER 1024
