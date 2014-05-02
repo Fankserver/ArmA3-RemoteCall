@@ -518,8 +518,6 @@ std::string RemoteCall::getStackItem(int _outputBuffer) {
 LONG WINAPI CrashHandler(EXCEPTION_POINTERS *_exPointer) {
 	WCHAR szPath[MAX_PATH];
 	WCHAR szFileName[MAX_PATH];
-	WCHAR* szAppName = L"AppName";
-	WCHAR* szVersion = L"v1.0";
 	DWORD dwBufferSize = MAX_PATH;
 	HANDLE hDumpFile;
 	SYSTEMTIME stLocalTime;
@@ -528,11 +526,7 @@ LONG WINAPI CrashHandler(EXCEPTION_POINTERS *_exPointer) {
 	GetLocalTime(&stLocalTime);
 	GetTempPath(dwBufferSize, szPath);
 
-	StringCchPrintf(szFileName, MAX_PATH, L"%s%s", szPath, szAppName);
-	CreateDirectory(szFileName, NULL);
-
-	StringCchPrintf(szFileName, MAX_PATH, L"%s%s\\%s-%04d%02d%02d-%02d%02d%02d-%ld-%ld.dmp",
-		szPath, szAppName, szVersion,
+	StringCchPrintf(szFileName, MAX_PATH, L"%04d%02d%02d-%02d%02d%02d-%ld-%ld.dmp",
 		stLocalTime.wYear, stLocalTime.wMonth, stLocalTime.wDay,
 		stLocalTime.wHour, stLocalTime.wMinute, stLocalTime.wSecond,
 		GetCurrentProcessId(), GetCurrentThreadId());
