@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -99,10 +100,11 @@ private:
 	std::shared_ptr<queryS> tempQuery;
 
 	// Packet management
-	void _createPacket(packetS *Packet);
+	void _createPacket(packetS *Packet, size_t *PacketSize);
+	bool _packetToByteString(char *Dest, packetS *Source, size_t Size);
 	bool _unpackPacket(const char *Receive, int ReceiveLength, packetS *Packet);
 	int _validatePacket(packetS *Packet);
-	void _processPacket(clientS *Client, packetS *Packet, packetS *PacketDest, int *PacketDestLength);
+	void _processPacket(clientS *Client, packetS *Packet, packetS *PacketDest, size_t *PacketDestSize, int *PacketDestLength);
 
 	void _initServerSocket();
 	void _initClientSocket(SOCKET Socket);
