@@ -248,18 +248,33 @@ void RemoteCall::_initServerSocket() {
 
 	freeaddrinfo(result);
 
-	listen(serverSocket, 10);
+	listen(serverSocket, SOMAXCONN);
 	while (true) {
-		SOCKET clientSocket = SOCKET_ERROR;
+		try {
+			SOCKET clientSocket = SOCKET_ERROR;
+			struct sockaddr_in clientInfo = { 0 };
+			int clientInfoSize = sizeof(clientInfo);
 
-		if ((clientSocket = accept(serverSocket, NULL, NULL)) != SOCKET_ERROR) {
-			std::thread client(std::bind(&RemoteCall::_initClientSocket, this, clientSocket));
-			client.detach();
+			// Accepting incomming client connections
+			clientSocket = accept(serverSocket, (sockaddr*)&clientInfo, &clientInfoSize);
+			if (clientSocket != SOCKET_ERROR) {
+				// Client connected
+				//std::cout << "Client connected " << inet_ntoa(clientInfo.sin_addr) << std::endl;
+				std::thread client(std::bind(&RemoteCall::_initClientSocket, this, clientSocket));
+				client.detach();
+			}
+
+			// Take a sleep
+			Sleep(5);
 		}
-		else {
-
+		catch (const std::system_error &sysEx) {
+			this->_log(sysEx.what());
+			break;
 		}
 	}
+
+	closesocket(serverSocket);
+	WSACleanup();
 }
 void RemoteCall::_initClientSocket(SOCKET _socket) {
 	::SetUnhandledExceptionFilter(CrashHandler);
