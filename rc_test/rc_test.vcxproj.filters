@@ -19,19 +19,25 @@
     <ClCompile Include="rc_test.cpp">
       <Filter>Sourcefiles</Filter>
     </ClCompile>
-    <ClCompile Include="..\remote_call\RemoteCall\RemoteCall.cpp">
-      <Filter>Sourcefiles\RemoteCall</Filter>
-    </ClCompile>
     <ClCompile Include="..\remote_call\RemoteCall\SQF.cpp">
       <Filter>Sourcefiles\SQF</Filter>
     </ClCompile>
+    <ClCompile Include="..\remote_call\RemoteCall\Server.cpp">
+      <Filter>Sourcefiles\RemoteCall</Filter>
+    </ClCompile>
+    <ClCompile Include="..\remote_call\RemoteCall\Packet.cpp">
+      <Filter>Sourcefiles\RemoteCall</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\remote_call\RemoteCall\RemoteCall.hpp">
-      <Filter>Sourcefiles\RemoteCall</Filter>
-    </ClInclude>
     <ClInclude Include="..\remote_call\RemoteCall\SQF.hpp">
       <Filter>Sourcefiles\SQF</Filter>
+    </ClInclude>
+    <ClInclude Include="..\remote_call\RemoteCall\Server.hpp">
+      <Filter>Sourcefiles\RemoteCall</Filter>
+    </ClInclude>
+    <ClInclude Include="..\remote_call\RemoteCall\Packet.hpp">
+      <Filter>Sourcefiles\RemoteCall</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

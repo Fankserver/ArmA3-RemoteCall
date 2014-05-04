@@ -83,12 +83,14 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\remote_call\RemoteCall\RemoteCall.cpp" />
+    <ClCompile Include="..\remote_call\RemoteCall\Packet.cpp" />
+    <ClCompile Include="..\remote_call\RemoteCall\Server.cpp" />
     <ClCompile Include="..\remote_call\RemoteCall\SQF.cpp" />
     <ClCompile Include="rc_test.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\remote_call\RemoteCall\RemoteCall.hpp" />
+    <ClInclude Include="..\remote_call\RemoteCall\Packet.hpp" />
+    <ClInclude Include="..\remote_call\RemoteCall\Server.hpp" />
     <ClInclude Include="..\remote_call\RemoteCall\SQF.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

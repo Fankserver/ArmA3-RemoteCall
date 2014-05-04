@@ -1,7 +1,7 @@
 #define LOGCOUT
-#include "../remote_call/RemoteCall/RemoteCall.hpp"
+#include "../remote_call/RemoteCall/Server.hpp"
 
-RemoteCall rc;
+RemoteCall::Server rc;
 
 void work() {
 	std::string stackItem = rc.getStackItem(4096);

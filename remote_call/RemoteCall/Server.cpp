@@ -1,16 +1,16 @@
-#include "RemoteCall.hpp"
+#include "Server.hpp"
 
-RemoteCall::RemoteCall() {
+RemoteCall::Server::Server() {
 	this->_readConfig();
 	std::cout << "Server startup on port " << this->server.port << std::endl;
 }
 
-RemoteCall::~RemoteCall() {
+RemoteCall::Server::~Server() {
 	this->tempQuery.reset();
 }
 
 // private
-void RemoteCall::_createPacket(packetS *_packet, size_t *_packetSize) {
+void RemoteCall::Server::_createPacket(packetS *_packet, size_t *_packetSize) {
 	::SetUnhandledExceptionFilter(CrashHandler);
 	memset(_packet, 0, sizeof(packetS));
 	strncpy(_packet->identfier, "RC", 2);
@@ -21,13 +21,13 @@ void RemoteCall::_createPacket(packetS *_packet, size_t *_packetSize) {
 
 	*_packetSize = REMOTECALL_PACKETSIZE;
 }
-bool RemoteCall::_packetToByteString(char *_dest, packetS *_source, size_t _size) {
+bool RemoteCall::Server::_packetToByteString(char *_dest, packetS *_source, size_t _size) {
 	char *data = new char[_size];
 	memcpy(data, (char *)_source, REMOTECALL_PACKETSIZE);
 	strncpy(data + REMOTECALL_PACKETSIZE, _source->content, _size - REMOTECALL_PACKETSIZE);
 	return true;
 }
-bool RemoteCall::_unpackPacket(const char *_receive, int _receiveLength, packetS *_packet) {
+bool RemoteCall::Server::_unpackPacket(const char *_receive, int _receiveLength, packetS *_packet) {
 	::SetUnhandledExceptionFilter(CrashHandler);
 	// long enought to be a packet
 	if (_receiveLength >= REMOTECALL_PACKETSIZE) {
@@ -68,7 +68,7 @@ bool RemoteCall::_unpackPacket(const char *_receive, int _receiveLength, packetS
 
 	return false;
 }
-int RemoteCall::_validatePacket(packetS *_packet) {
+int RemoteCall::Server::_validatePacket(packetS *_packet) {
 	::SetUnhandledExceptionFilter(CrashHandler);
 	// Valid RemoteCall packet
 	if (
@@ -100,20 +100,17 @@ int RemoteCall::_validatePacket(packetS *_packet) {
 
 	return RemoteCallError::ErrorUnhandled;
 }
-void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_packetDest, size_t *_packetDestSize, int *_packetDestLength) {
+void RemoteCall::Server::_processPacket(clientS *_client, packetS *_packet, RemoteCall::Packet *_packetDest) {
 	::SetUnhandledExceptionFilter(CrashHandler);
 	// Client logged in
 	if (_client->loggedIn) {
 		// Query content length
 		if (_packet->command == RemoteCallCommands::QueryContentLength) {
-			_packetDest->command = RemoteCallCommands::QueryContentLengthResponse;
-			_packetDest->content = new char[1];
-			_packetDestSize += sizeof(char)* 1;
-			*_packetDestLength = REMOTECALL_PACKETSIZE + 1;
+			_packetDest->setCommand(RemoteCallCommands::QueryContentLengthResponse);
 
 			// query buffer in use
 			if (_client->isQueryBuffer) {
-				_packetDest->content[0] = RemoteCallQueryContentError::CONTENT_WaitForContent;
+				_packetDest->setContent((const char)RemoteCallQueryContentError::CONTENT_WaitForContent);
 			}
 			else {
 				unsigned short int queryLength = 0;
@@ -133,16 +130,16 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 						_client->queryBuffer = queryBuffer;
 
 						// wrong query length
-						_packetDest->content[0] = RemoteCallQueryContentError::CONTENT_OK;
+						_packetDest->setContent((const char)RemoteCallQueryContentError::CONTENT_OK);
 					}
 					else {
 						// wrong query length
-						_packetDest->content[0] = RemoteCallQueryContentError::CONTENT_TooLong;
+						_packetDest->setContent((const char)RemoteCallQueryContentError::CONTENT_TooLong);
 					}
 				}
 				else {
 					// wrong query length
-					_packetDest->content[0] = RemoteCallQueryContentError::CONTENT_TooShort;
+					_packetDest->setContent((const char)RemoteCallQueryContentError::CONTENT_TooShort);
 				}
 			}
 		}
@@ -156,11 +153,8 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 				if (strlen(_client->queryBuffer) == (_client->queryBufferLength - 1)) {
 					short int queryId = this->_addQuery(_client->queryBuffer, _client->queryBufferLength);
 					if (queryId > 0) {
-						_packetDest->command = RemoteCallCommands::QueryResponseId;
-						_packetDest->content = new char[2];
-						_packetDestSize += sizeof(char)* 2;
-						*_packetDestLength = REMOTECALL_PACKETSIZE + 2;
-						memcpy(_packetDest->content, &queryId, 2);
+						_packetDest->setCommand(RemoteCallCommands::QueryResponseId);
+						_packetDest->setContent(queryId);
 					}
 					else {
 						// Query full
@@ -176,29 +170,26 @@ void RemoteCall::_processPacket(clientS *_client, packetS *_packet, packetS *_pa
 
 	// Client not logged in
 	else {
-		_packetDest->command = RemoteCallCommands::HandshakeResponse;
-		_packetDest->content = new char[1];
-		_packetDestSize += sizeof(char)* 1;
-		*_packetDestLength = REMOTECALL_PACKETSIZE + 1;
+		_packetDest->setCommand(RemoteCallCommands::HandshakeResponse);
 		if (_packet->command == RemoteCallCommands::HandshakePassword) {
 			if (this->server.password.compare(_packet->content) == 0) {
 				_client->loggedIn = true;
 
-				_packetDest->content[0] = RemoteCallHandshake::PASSWORD_CORRECT;
+				_packetDest->setContent((const char)RemoteCallHandshake::PASSWORD_CORRECT);
 			}
 			else {
-				_packetDest->content[0] = RemoteCallHandshake::PASSWORD_INCORRECT;
+				_packetDest->setContent((const char)RemoteCallHandshake::PASSWORD_INCORRECT);
 			}
 		}
 		else {
-			_packetDest->content[0] = RemoteCallHandshake::COMMAND_INCORRECT;
+			_packetDest->setContent((const char)RemoteCallHandshake::COMMAND_INCORRECT);
 		}
 	}
 }
 
 // Winsockets
 #ifdef WIN32
-void RemoteCall::_initServerSocket() {
+void RemoteCall::Server::_initServerSocket() {
 	::SetUnhandledExceptionFilter(CrashHandler);
 	int iResult;
 	SOCKET serverSocket = INVALID_SOCKET;
@@ -270,7 +261,7 @@ void RemoteCall::_initServerSocket() {
 			clientSocket = accept(serverSocket, (sockaddr*)&clientInfo, &clientInfoSize);
 			if (clientSocket != SOCKET_ERROR) {
 				// Client connected
-				std::thread client(std::bind(&RemoteCall::_initClientSocket, this, clientSocket));
+				std::thread client(std::bind(&RemoteCall::Server::_initClientSocket, this, clientSocket));
 				client.detach();
 			}
 
@@ -286,13 +277,13 @@ void RemoteCall::_initServerSocket() {
 	closesocket(serverSocket);
 	WSACleanup();
 }
-void RemoteCall::_initClientSocket(SOCKET _socket) {
+void RemoteCall::Server::_initClientSocket(SOCKET _socket) {
 	::SetUnhandledExceptionFilter(CrashHandler);
 	clientS client;
 	memset(&client, 0, sizeof(clientS));
 	int iResult;
 	int recvBufLen = REMOTECALL_SOCKBUFFER;
-	char recvbuf[REMOTECALL_SOCKBUFFER], sendbuf[REMOTECALL_SOCKBUFFER];
+	char recvbuf[REMOTECALL_SOCKBUFFER];
 
 	client.loggedIn = false;
 	client.isQueryBuffer = false;
@@ -308,22 +299,18 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 				switch (packetError) {
 					case RemoteCallError::OK: {
 						// Create response packet
-						int responsePacketLength = 0;
-						size_t responsePacketSize = 0;
-						packetS responsePacket;
-						this->_createPacket(&responsePacket, &responsePacketSize);
+						Packet responsePacket;
 
 						// Process packet
-						this->_processPacket(&client, &packet, &responsePacket, &responsePacketSize, &responsePacketLength);
-						if (responsePacket.command != 0) {
-							// Create response string
-							memcpy(sendbuf, &responsePacket, REMOTECALL_PACKETSIZE);
-							strncpy(sendbuf + REMOTECALL_PACKETSIZE, responsePacket.content, responsePacketLength - REMOTECALL_PACKETSIZE);
-
-							this->_packetToByteString(NULL, &responsePacket, responsePacketLength);
+						this->_processPacket(&client, &packet, &responsePacket);
+						if (responsePacket.hasCommand()) {
+							// Serialize
+							int sendBufferLength;
+							char *sendBuffer = NULL;
+							responsePacket.serialize(sendBuffer, &sendBufferLength);
 
 							// Send response string
-							int iSendResult = send(_socket, sendbuf, responsePacketLength, 0);
+							int iSendResult = send(_socket, sendBuffer, sendBufferLength, 0);
 							if (iSendResult == SOCKET_ERROR) {
 								this->_log("SEND FAILED");
 								closesocket(_socket);
@@ -331,7 +318,6 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 							}
 						}
 
-						delete[] responsePacket.content;
 						break;
 					}
 					//case RemoteCallError::ErrorVersion: {
@@ -383,7 +369,7 @@ void RemoteCall::_initClientSocket(SOCKET _socket) {
 }
 #endif
 
-int RemoteCall::_addQuery(const char *_query, size_t _querySize) {
+int RemoteCall::Server::_addQuery(const char *_query, size_t _querySize) {
 	::SetUnhandledExceptionFilter(CrashHandler);
 	int queryId = 0;
 
@@ -421,7 +407,7 @@ int RemoteCall::_addQuery(const char *_query, size_t _querySize) {
 
 	return queryId;
 }
-std::string RemoteCall::_buildQuerySQF(int _bufferSize) {
+std::string RemoteCall::Server::_buildQuerySQF(int _bufferSize) {
 	::SetUnhandledExceptionFilter(CrashHandler);
 	size_t bufferSize = _bufferSize - 16; // remote overhead from buffer
 	std::string ret = "[]";
@@ -449,7 +435,7 @@ std::string RemoteCall::_buildQuerySQF(int _bufferSize) {
 	return ret;
 }
 
-void RemoteCall::_log(const char *_message) {
+void RemoteCall::Server::_log(const char *_message) {
 	::SetUnhandledExceptionFilter(CrashHandler);
 #ifdef _USRDLL
 	std::ofstream logFile("rc.log", std::ios::out |std::ios::app);
@@ -460,7 +446,7 @@ void RemoteCall::_log(const char *_message) {
 #endif
 }
 
-void RemoteCall::_readConfig() {
+void RemoteCall::Server::_readConfig() {
 	::SetUnhandledExceptionFilter(CrashHandler);
 	// Prepare RegEx
 	std::regex regExConfigEntry("^(\\w+)[ \\t]*=[ \\t]*\"(.*)\";$");
@@ -503,14 +489,14 @@ void RemoteCall::_readConfig() {
 }
 
 // public
-void RemoteCall::initServer() {
+void RemoteCall::Server::initServer() {
 	::SetUnhandledExceptionFilter(CrashHandler);
 	// Init server socket thread & detach it
-	this->socketThread = std::thread(std::bind(&RemoteCall::_initServerSocket, this));
+	this->socketThread = std::thread(std::bind(&RemoteCall::Server::_initServerSocket, this));
 	this->socketThread.detach();
 }
 
-std::string RemoteCall::getStackItem(int _outputBuffer) {
+std::string RemoteCall::Server::getStackItem(int _outputBuffer) {
 	::SetUnhandledExceptionFilter(CrashHandler);
 	std::string returnString = "[]";
 

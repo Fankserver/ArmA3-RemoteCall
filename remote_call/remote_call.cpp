@@ -10,12 +10,12 @@
 #include <shellapi.h>
 #endif
 
-#include "RemoteCall\RemoteCall.hpp"
+#include "RemoteCall\Server.hpp"
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "3310"
 
-RemoteCall rCall;
+RemoteCall::Server rCall;
 
 extern "C" {
 	__declspec (dllexport) void __stdcall RVExtension(char *output, int outputSize, const char *function);

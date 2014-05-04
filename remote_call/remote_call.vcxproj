@@ -81,7 +81,8 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="RemoteCall\RemoteCall.hpp" />
+    <ClInclude Include="RemoteCall\Packet.hpp" />
+    <ClInclude Include="RemoteCall\Server.hpp" />
     <ClInclude Include="RemoteCall\SQF.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -93,7 +94,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="RemoteCall\RemoteCall.cpp" />
+    <ClCompile Include="RemoteCall\Packet.cpp" />
+    <ClCompile Include="RemoteCall\Server.cpp" />
     <ClCompile Include="RemoteCall\SQF.cpp" />
     <ClCompile Include="remote_call.cpp" />
   </ItemGroup>

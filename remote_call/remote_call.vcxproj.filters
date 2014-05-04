@@ -19,7 +19,10 @@
     <ClInclude Include="RemoteCall\SQF.hpp">
       <Filter>Sourcefiles\SQF</Filter>
     </ClInclude>
-    <ClInclude Include="RemoteCall\RemoteCall.hpp">
+    <ClInclude Include="RemoteCall\Server.hpp">
+      <Filter>Sourcefiles\RemoteCall</Filter>
+    </ClInclude>
+    <ClInclude Include="RemoteCall\Packet.hpp">
       <Filter>Sourcefiles\RemoteCall</Filter>
     </ClInclude>
   </ItemGroup>
@@ -33,7 +36,10 @@
     <ClCompile Include="RemoteCall\SQF.cpp">
       <Filter>Sourcefiles\SQF</Filter>
     </ClCompile>
-    <ClCompile Include="RemoteCall\RemoteCall.cpp">
+    <ClCompile Include="RemoteCall\Server.cpp">
+      <Filter>Sourcefiles\RemoteCall</Filter>
+    </ClCompile>
+    <ClCompile Include="RemoteCall\Packet.cpp">
       <Filter>Sourcefiles\RemoteCall</Filter>
     </ClCompile>
   </ItemGroup>
