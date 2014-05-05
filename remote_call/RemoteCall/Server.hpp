@@ -102,8 +102,6 @@ namespace RemoteCall {
 		std::shared_ptr<queryS> tempQuery;
 
 		// Packet management
-		void _createPacket(packetS *Packet, size_t *PacketSize);
-		bool _packetToByteString(char *Dest, packetS *Source, size_t Size);
 		bool _unpackPacket(const char *Receive, int ReceiveLength, packetS *Packet);
 		int _validatePacket(packetS *Packet);
 		void _processPacket(clientS *Client, packetS *Packet, RemoteCall::Packet *PacketDest);

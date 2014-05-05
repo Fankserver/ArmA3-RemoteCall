@@ -10,22 +10,6 @@ RemoteCall::Server::~Server() {
 }
 
 // private
-void RemoteCall::Server::_createPacket(packetS *_packet, size_t *_packetSize) {
-	memset(_packet, 0, sizeof(packetS));
-	strncpy(_packet->identfier, "RC", 2);
-	_packet->version = REMOTECALL_VERSION;
-	_packet->spacer = 0xFF;
-	_packet->command = 0x00;
-	_packet->content = NULL;
-
-	*_packetSize = REMOTECALL_PACKETSIZE;
-}
-bool RemoteCall::Server::_packetToByteString(char *_dest, packetS *_source, size_t _size) {
-	char *data = new char[_size];
-	memcpy(data, (char *)_source, REMOTECALL_PACKETSIZE);
-	strncpy(data + REMOTECALL_PACKETSIZE, _source->content, _size - REMOTECALL_PACKETSIZE);
-	return true;
-}
 bool RemoteCall::Server::_unpackPacket(const char *_receive, int _receiveLength, packetS *_packet) {
 	// long enought to be a packet
 	if (_receiveLength >= REMOTECALL_PACKETSIZE) {
