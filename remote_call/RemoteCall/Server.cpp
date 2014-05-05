@@ -11,7 +11,6 @@ RemoteCall::Server::~Server() {
 
 // private
 void RemoteCall::Server::_createPacket(packetS *_packet, size_t *_packetSize) {
-	::SetUnhandledExceptionFilter(CrashHandler);
 	memset(_packet, 0, sizeof(packetS));
 	strncpy(_packet->identfier, "RC", 2);
 	_packet->version = REMOTECALL_VERSION;
@@ -28,7 +27,6 @@ bool RemoteCall::Server::_packetToByteString(char *_dest, packetS *_source, size
 	return true;
 }
 bool RemoteCall::Server::_unpackPacket(const char *_receive, int _receiveLength, packetS *_packet) {
-	::SetUnhandledExceptionFilter(CrashHandler);
 	// long enought to be a packet
 	if (_receiveLength >= REMOTECALL_PACKETSIZE) {
 		try {
@@ -69,7 +67,6 @@ bool RemoteCall::Server::_unpackPacket(const char *_receive, int _receiveLength,
 	return false;
 }
 int RemoteCall::Server::_validatePacket(packetS *_packet) {
-	::SetUnhandledExceptionFilter(CrashHandler);
 	// Valid RemoteCall packet
 	if (
 		_packet->identfier[0] == 'R' && _packet->identfier[1] == 'C'
@@ -101,7 +98,6 @@ int RemoteCall::Server::_validatePacket(packetS *_packet) {
 	return RemoteCallError::ErrorUnhandled;
 }
 void RemoteCall::Server::_processPacket(clientS *_client, packetS *_packet, RemoteCall::Packet *_packetDest) {
-	::SetUnhandledExceptionFilter(CrashHandler);
 	// Client logged in
 	if (_client->loggedIn) {
 		// Query content length
@@ -190,7 +186,6 @@ void RemoteCall::Server::_processPacket(clientS *_client, packetS *_packet, Remo
 // Winsockets
 #ifdef WIN32
 void RemoteCall::Server::_initServerSocket() {
-	::SetUnhandledExceptionFilter(CrashHandler);
 	int iResult;
 	SOCKET serverSocket = INVALID_SOCKET;
 
@@ -278,7 +273,6 @@ void RemoteCall::Server::_initServerSocket() {
 	WSACleanup();
 }
 void RemoteCall::Server::_initClientSocket(SOCKET _socket) {
-	::SetUnhandledExceptionFilter(CrashHandler);
 	clientS client;
 	memset(&client, 0, sizeof(clientS));
 	int iResult;
@@ -316,38 +310,37 @@ void RemoteCall::Server::_initClientSocket(SOCKET _socket) {
 								closesocket(_socket);
 								iResult = 0;
 							}
+
+							if (sendBuffer != NULL) {
+								delete[] sendBuffer;
+							}
 						}
 
 						break;
 					}
-					//case RemoteCallError::ErrorVersion: {
-					//	// Create response packet
-					//	int responsePacketLength = 0;
-					//	size_t responsePacketSize = 0;
-					//	packetS responsePacket;
-					//	this->_createPacket(&responsePacket, &responsePacketSize);
-					//
-					//	responsePacketLength = REMOTECALL_PACKETSIZE + 1;
-					//	responsePacketSize = REMOTECALL_PACKETSIZE + (sizeof(char)* 1);
-					//	responsePacket.command = RemoteCallCommands::HandshakeResponse;
-					//	responsePacket.content = new char[1];
-					//	responsePacket.content[0] = RemoteCallError::ErrorVersion;
-					//
-					//	char *tempPacket = new char[(responsePacketSize - 1)];
-					//	memcpy(tempPacket, &responsePacket, responsePacketLength);
-					//	strncpy(tempPacket + REMOTECALL_PACKETSIZE, responsePacket.content, responsePacketLength - REMOTECALL_PACKETSIZE);
-					//
-					//	int iSendResult = send(_socket, tempPacket, responsePacketLength, 0);
-					//	if (iSendResult == SOCKET_ERROR) {
-					//		this->_log("SEND FAILED");
-					//		closesocket(_socket);
-					//		iResult = 0;
-					//	}
-					//
-					//	delete[] tempPacket;
-					//	delete[] responsePacket.content;
-					//	break;
-					//}
+					case RemoteCallError::ErrorVersion: {
+						// Create response packet
+						Packet responsePacket;
+						responsePacket.setCommand(RemoteCallCommands::HandshakeResponse);
+						responsePacket.setContent((const char)RemoteCallError::ErrorVersion);
+					
+						// Serialize
+						int sendBufferLength;
+						char *sendBuffer = NULL;
+						responsePacket.serialize(sendBuffer, &sendBufferLength);
+					
+						int iSendResult = send(_socket, sendBuffer, sendBufferLength, 0);
+						if (iSendResult == SOCKET_ERROR) {
+							this->_log("SEND FAILED");
+							closesocket(_socket);
+							iResult = 0;
+						}
+					
+						if (sendBuffer != NULL) {
+							delete[] sendBuffer;
+						}
+						break;
+					}
 					default: {
 						// unexpected error
 						closesocket(_socket);
@@ -370,7 +363,6 @@ void RemoteCall::Server::_initClientSocket(SOCKET _socket) {
 #endif
 
 int RemoteCall::Server::_addQuery(const char *_query, size_t _querySize) {
-	::SetUnhandledExceptionFilter(CrashHandler);
 	int queryId = 0;
 
 	this->queryStackMutex.lock();
@@ -408,7 +400,6 @@ int RemoteCall::Server::_addQuery(const char *_query, size_t _querySize) {
 	return queryId;
 }
 std::string RemoteCall::Server::_buildQuerySQF(int _bufferSize) {
-	::SetUnhandledExceptionFilter(CrashHandler);
 	size_t bufferSize = _bufferSize - 16; // remote overhead from buffer
 	std::string ret = "[]";
 
@@ -436,7 +427,6 @@ std::string RemoteCall::Server::_buildQuerySQF(int _bufferSize) {
 }
 
 void RemoteCall::Server::_log(const char *_message) {
-	::SetUnhandledExceptionFilter(CrashHandler);
 #ifdef _USRDLL
 	std::ofstream logFile("rc.log", std::ios::out |std::ios::app);
 	logFile << _message << std::endl;
@@ -447,7 +437,6 @@ void RemoteCall::Server::_log(const char *_message) {
 }
 
 void RemoteCall::Server::_readConfig() {
-	::SetUnhandledExceptionFilter(CrashHandler);
 	// Prepare RegEx
 	std::regex regExConfigEntry("^(\\w+)[ \\t]*=[ \\t]*\"(.*)\";$");
 
@@ -490,14 +479,12 @@ void RemoteCall::Server::_readConfig() {
 
 // public
 void RemoteCall::Server::initServer() {
-	::SetUnhandledExceptionFilter(CrashHandler);
 	// Init server socket thread & detach it
 	this->socketThread = std::thread(std::bind(&RemoteCall::Server::_initServerSocket, this));
 	this->socketThread.detach();
 }
 
 std::string RemoteCall::Server::getStackItem(int _outputBuffer) {
-	::SetUnhandledExceptionFilter(CrashHandler);
 	std::string returnString = "[]";
 
 	if (this->tempQuery) {
@@ -529,30 +516,4 @@ std::string RemoteCall::Server::getStackItem(int _outputBuffer) {
 	}
 
 	return returnString;
-}
-
-LONG WINAPI CrashHandler(EXCEPTION_POINTERS *_exPointer) {
-	WCHAR szPath[MAX_PATH];
-	WCHAR szFileName[MAX_PATH];
-	DWORD dwBufferSize = MAX_PATH;
-	HANDLE hDumpFile;
-	SYSTEMTIME stLocalTime;
-	MINIDUMP_EXCEPTION_INFORMATION ExpParam;
-
-	GetLocalTime(&stLocalTime);
-	GetTempPath(dwBufferSize, szPath);
-
-	StringCchPrintf(szFileName, MAX_PATH, L"%04d%02d%02d-%02d%02d%02d-%ld-%ld.dmp",
-		stLocalTime.wYear, stLocalTime.wMonth, stLocalTime.wDay,
-		stLocalTime.wHour, stLocalTime.wMinute, stLocalTime.wSecond,
-		GetCurrentProcessId(), GetCurrentThreadId());
-	hDumpFile = CreateFile(szFileName, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ, 0, CREATE_ALWAYS, 0, 0);
-
-	ExpParam.ThreadId = GetCurrentThreadId();
-	ExpParam.ExceptionPointers = _exPointer;
-	ExpParam.ClientPointers = TRUE;
-
-	MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hDumpFile, MiniDumpWithDataSegs, &ExpParam, NULL, NULL);
-
-	return EXCEPTION_EXECUTE_HANDLER;
 }

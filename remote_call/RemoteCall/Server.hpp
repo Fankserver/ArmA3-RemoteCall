@@ -37,7 +37,6 @@
 #define REMOTECALL_PACKETSIZE 5
 
 namespace RemoteCall {
-
 	enum RemoteCallCommands {
 		HandshakePassword = 0x00
 		, HandshakeResponse
@@ -126,6 +125,4 @@ namespace RemoteCall {
 		std::string getStackItem(int OutputBuffer);
 	};
 };
-
-LONG WINAPI CrashHandler(EXCEPTION_POINTERS *exPointer);
 #endif

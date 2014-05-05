@@ -1,5 +1,6 @@
 #include "Packet.hpp"
 
+// Constructor
 RemoteCall::Packet::Packet() {
 	strncpy(this->identfier, "RC", sizeof(this->identfier));
 	this->version = 0x01;
@@ -9,12 +10,14 @@ RemoteCall::Packet::Packet() {
 	this->content = NULL;
 }
 
+// Destructor
 RemoteCall::Packet::~Packet() {
 	if (this->content != NULL) {
 		delete[] this->content;
 	}
 }
 
+// Allocator
 void RemoteCall::Packet::_allocContent(size_t _size) {
 	if (this->content != NULL) {
 		delete[] this->content;
@@ -36,6 +39,9 @@ void RemoteCall::Packet::setCommand(unsigned char _command) {
 }
 
 // Content
+bool RemoteCall::Packet::hasContent() {
+	return (this->contentLength > 0 ? true : false);
+}
 const char* RemoteCall::Packet::getContent() {
 	if (this->content != NULL) {
 		return this->content;
